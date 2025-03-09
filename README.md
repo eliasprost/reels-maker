@@ -19,22 +19,26 @@ is under development, so it may not be fully functional.
 <details>
 <summary>Video example 1</summary>
 
-**🎥 Link**: https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_1.mp4
+- **🔖 Reddit post**: [here](https://www.reddit.com/r/AskArgentina/comments/1j782c4/porque_me_siento_tan_mal_despu%C3%A9s_de_salir_de_joda/)
 
-**📸 Thumbail**:
+- **🎥 Link**: [here](https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_1.mp4)
 
-<img src="https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_1.png" width="300">
+- **📸 Thumbail**:
+
+  <img src="https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_1.png" width="300">
 
 </details>
 
 <details>
 <summary>Video example 2</summary>
 
-**🎥 Link**: https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_2.mp4
+- **🔖 Reddit post**: [here](https://www.reddit.com/r/AskArgentina/comments/1j6ydki/alguna_inseguridad_boluda/)
 
-**📸 Thumbail**:
+- **🎥 Link**: [here](https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_2.mp4)
 
-<img src="https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_2.png" width="300">
+- **📸 Thumbail**:
+
+  <img src="https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_2.png" width="300">
 
 </details>
 
