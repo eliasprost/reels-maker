@@ -14,6 +14,7 @@ from src.utils.media.video import (
     concatenate_videos,
     create_image_videoclip,
     cut_video,
+    extract_video_thumbnail,
     overlay_videos,
     resize_video,
 )
@@ -28,16 +29,18 @@ def main():
     # Add a sys arg to take the URL from the CLI
     URL = input("Enter the URL of the Reddit post: ")
 
-    if not URL.startswith("https://www.reddit.com"):
-        raise ValueError("Invalid URL format. Please enter a valid Reddit post URL.")
+    while not URL.startswith("https://www.reddit.com"):
+        URL = input("Invalid URL format. Please enter a valid Reddit post URL: ")
 
     # MAIN ARGS
-    N_COMMENTS = 3  # TODO: we need to change for video duration.
+    N_COMMENTS = 3  # TODO: we need to change to use the video duration from settings.
     REDDIT_VIDEO_PATH = "assets/posts/{post_id}/video/reddit_video.mp4"
     REDDIT_AUDIO_PATH = "assets/posts/{post_id}/audio/reddit_audio.mp3"
     BACKGROUND_VIDEO_PATH = "assets/posts/{post_id}/video/background_video_{suffix}.mp4"
     BACKGROUND_AUDIO_PATH = "assets/posts/{post_id}/audio/background_audio.mp3"
-    BACKGROUND_AUDIO_VOLUME = 0.30
+    BACKGROUND_AUDIO_VOLUME = (
+        0.30  # TODO: we need to change this to use the video duration from settings.
+    )
     REEL_PATH = "assets/posts/{post_id}/reel_{suffix}.mp4"
 
     # POST
@@ -57,17 +60,17 @@ def main():
     text_to_speech.generate_audio_clip(
         post.title,
         output_path=post.title_audio_path,
-        speed=1.3,
+        speed=1.3,  # TODO: we need to change this to use the video duration from settings.
     )
     text_to_speech.generate_audio_clip(
         post.body,
         output_path=post.body_audio_path,
-        speed=1.3,
+        speed=1.3,  # TODO: we need to change this to use the video duration from settings.
     )
 
     concatenate_audio_files(
         files=[post.title_audio_path, post.body_audio_path],
-        silence_duration=0.2,
+        silence_duration=0.2,  # TODO: we need to change this to use the video duration from settings.
         output_file=post.audio_path,
     )
 
@@ -93,7 +96,7 @@ def main():
         text_to_speech.generate_audio_clip(
             comment.body,
             output_path=comment.audio_path,
-            speed=1.3,
+            speed=1.3,  # TODO: we need to change this to use the video duration from settings.
         )
 
     # Get the comments screenshots
@@ -170,7 +173,7 @@ def main():
         input_path=random_audio_path,
         output_path=BACKGROUND_AUDIO_PATH.format(post_id=post.post_id),
         duration=video_duration,
-        fade_duration=1,
+        fade_duration=1,  # TODO: we need to change this to use the video duration from settings.
     )
 
     # Combine background video and audio
@@ -195,13 +198,13 @@ def main():
         ),
         overlay_video=REDDIT_VIDEO_PATH.format(post_id=post.post_id),
         output_path=REEL_PATH.format(post_id=post.post_id, suffix="raw"),
-        zoom=1.85,
+        zoom=1.85,  # TODO: we need to change this to use the video duration from settings.
     )
 
     # Add subtitles to the video
     subs_segments = speech_to_text.transcribe_audio(
         input_file=REEL_PATH.format(post_id=post.post_id, suffix="raw"),
-        language="es",
+        language="es",  # TODO: we need to change this to use the video duration from settings.
     )
 
     # Generate SRT file
@@ -222,6 +225,12 @@ def main():
         input_file=REEL_PATH.format(post_id=post.post_id, suffix="raw"),
         output_file=REEL_PATH.format(post_id=post.post_id, suffix="subtitled"),
         subtitle_path=f"assets/posts/{post.post_id}/reel_raw.ass",
+    )
+
+    # Extract video thumbnail from the subtitled video
+    extract_video_thumbnail(
+        video_path=REEL_PATH.format(post_id=post.post_id, suffix="subtitled"),
+        output_path=f"assets/posts/{post.post_id}/thumbnail.png",
     )
 
 

@@ -503,3 +503,34 @@ def add_subtitle_to_video(
             f"An error occurred while trying to embed subtitles in file {input_file}. Error: {e}",
         )
         raise e
+
+
+def extract_video_thumbnail(video_path: str, output_path: str, time: int = 1):
+    """
+    Extracts a thumbnail from a video at a specified time using ffmpeg-python.
+
+    Args:
+        video_path (str): Path to the input video file.
+        output_path (str): Path to save the extracted PNG thumbnail.
+        time (int, optional): Time (in seconds) to extract the frame. Defaults to 1s.
+    """
+
+    # Check if thumbnail exists
+    if os.path.exists(output_path):
+        logger.info(f"Thumbnail already exists at {output_path}. Skipping extraction.")
+        return
+
+    try:
+        (
+            ffmpeg.input(video_path, ss=time)  # Seek to the given second
+            .output(output_path, vframes=1)  # Extract 1 frame
+            .run(
+                overwrite_output=True,
+                capture_stderr=True,
+            )  # Capture errors for debugging
+        )
+        logger.info(f"Video thumbnail extracted successfully at {output_path}.")
+
+    except ffmpeg.Error as e:
+        logger.error(f"Error extracting video thumbnail: {e.stderr.decode()}")
+        raise e
