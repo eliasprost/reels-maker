@@ -147,5 +147,6 @@ pyrightconfig.json
 sandbox.ipynb
 
 # Assets and libs
-assets/
+assets/posts/
+assets/background/
 MeloTTS/
