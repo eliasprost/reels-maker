@@ -16,9 +16,27 @@ is under development, so it may not be fully functional.
 
 ## Examples
 
-[![Example Video 1](https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_1.png)](https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_1.mp4)
+<details>
+<summary>Video example 1</summary>
 
-[![Example Video 2](https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_2.png)](https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_2.mp4)
+**🎥 Link**: https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_1.mp4
+
+**📸 Thumbail**:
+
+<img src="https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_1.png" width="300">
+
+</details>
+
+<details>
+<summary>Video example 2</summary>
+
+**🎥 Link**: https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_2.mp4
+
+**📸 Thumbail**:
+
+<img src="https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_2.png" width="300">
+
+</details>
 
 ## Setup Instructions
 Follow these steps to set up the project:
