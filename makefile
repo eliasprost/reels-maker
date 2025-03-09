@@ -1,8 +1,7 @@
 define Comment
-	- Run `make install` to install the project.
+	- Run `make install-dev` to install the project dev dependencies.
 	- Run `make download` to download all the background media in one go.
 	- Run `make start` to start the Streamlit app.
-	- Run `make start-visualizer` to start the Streamlit app with visualizer.
 endef
 
 .PHONY: install-dev download start
