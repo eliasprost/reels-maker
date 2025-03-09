@@ -21,4 +21,4 @@ download:
 
 start:
 	@echo "Running the main.py..."
-	python src/main.py
+	python -m src.main
