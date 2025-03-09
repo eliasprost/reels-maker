@@ -2,18 +2,16 @@ define Comment
 	- Run `make install` to install the project.
 	- Run `make download` to download all the background media in one go.
 	- Run `make start` to start the Streamlit app.
+	- Run `make start-visualizer` to start the Streamlit app with visualizer.
 endef
 
-.PHONY: install download start
+.PHONY: install-dev download start
 
-install:
+install-dev:
 	@echo "1. Installing pre-commit"
 	pre-commit install
-	@echo "2. Installing MeloTTS"
-	cd MeloTTS
-	pip install -e .
+	@echo "2. Installing unidic to use MeloTTS"
 	python -m unidic download
-	cd ..
 	@echo "-- Finished --"
 	@echo "Please, run `poetry shell` to refresh the virtual environment."
 
@@ -22,5 +20,5 @@ download:
 	python scripts/download_background_media.py
 
 start:
-	@echo "Starting the Streamlit app..."
-	streamlit run src/app.py
+	@echo "Running the main.py..."
+	python src/main.py
