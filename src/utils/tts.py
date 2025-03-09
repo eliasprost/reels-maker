@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
 import re
-import sys
 import time
 
 from loguru import logger
-
-from MeloTTS.melo.api import TTS
-
-# To deal with MeloTTS package
-sys.path.append(".")
-sys.path.append("..")
+from melo.api import TTS
 
 
 class TextToSpeech:
