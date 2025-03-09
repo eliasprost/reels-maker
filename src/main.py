@@ -37,7 +37,7 @@ def main():
     REDDIT_AUDIO_PATH = "assets/posts/{post_id}/audio/reddit_audio.mp3"
     BACKGROUND_VIDEO_PATH = "assets/posts/{post_id}/video/background_video_{suffix}.mp4"
     BACKGROUND_AUDIO_PATH = "assets/posts/{post_id}/audio/background_audio.mp3"
-    BACKGROUND_AUDIO_VOLUME = 0.10
+    BACKGROUND_AUDIO_VOLUME = 0.30
     REEL_PATH = "assets/posts/{post_id}/reel_{suffix}.mp4"
 
     # POST
@@ -127,22 +127,22 @@ def main():
     # TEMP
     video_duration = get_audio_duration(REDDIT_VIDEO_PATH.format(post_id=post.post_id))
 
-    # Download background videos and audio
+    # Get and download a random background videos and audio
     audios = [
         parse_file(audio) for audio in json.load(open("./data/background_audios.json"))
     ]
-    for audio in audios:
-        download_file(audio)
 
     videos = [
         parse_file(video) for video in json.load(open("./data/background_videos.json"))
     ]
-    for video in videos:
-        download_file(video)
 
     # Get a random background video and audio
     random_video = random.choice(videos)
     random_audio = random.choice(audios)
+
+    # Download random audio and video
+    download_file(random_audio)
+    download_file(random_video)
 
     random_video_path = f"assets/background/video/{random_video.file_name}"
     random_audio_path = f"assets/background/audio/{random_audio.file_name}"
