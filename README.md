@@ -15,8 +15,10 @@ This repository provides the structure for automatically generating videos from 
 is under development, so it may not be fully functional.
 
 ## Examples
-![Example Video 1](assets/examples/example_1.mp4)
-![Example Video 2](assets/examples/example_2.mp4)
+
+[![Example Video 1](https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_1.png)](https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_1.mp4)
+
+[![Example Video 2](https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_2.png)](https://raw.githubusercontent.com/eliasprost/reddit-reels-maker/main/assets/examples/example_2.mp4)
 
 ## Setup Instructions
 Follow these steps to set up the project:
@@ -72,7 +74,7 @@ Follow these steps to set up the project:
     - After making changes to the `.env` file, refresh the environment variables by running `source .env` in the terminal.
 
 ## Run
-run `make start` in your terminal and insert the reddit post link when is asked.
+run `make start` in your terminal and insert the reddit post link when is asked. The generated contet will be saved in the `assets` folder.
 
 ## Contributing
 Contributions are welcome!  Please submit pull requests with your proposed changes.
