@@ -5,10 +5,10 @@ import random
 
 import praw
 
-from config import settings
-from utils.background import download_file, parse_file
-from utils.media.audio import concatenate_audio_files, cut_audio, get_audio_duration
-from utils.media.video import (
+from src.config import settings
+from src.utils.background import download_file, parse_file
+from src.utils.media.audio import concatenate_audio_files, cut_audio, get_audio_duration
+from src.utils.media.video import (
     add_subtitle_to_video,
     combine_video_with_audio,
     concatenate_videos,
@@ -17,10 +17,10 @@ from utils.media.video import (
     overlay_videos,
     resize_video,
 )
-from utils.reddit.post import parse_reddit_post
-from utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
-from utils.stt import speech_to_text
-from utils.tts import text_to_speech
+from src.utils.reddit.post import parse_reddit_post
+from src.utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
+from src.utils.stt import speech_to_text
+from src.utils.tts import text_to_speech
 
 
 def main():

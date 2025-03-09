@@ -5,7 +5,7 @@ import random
 import ffmpeg
 from loguru import logger
 
-from config import settings
+from src.config import settings
 
 
 def generate_silence(duration: float, output_path: str) -> None:
