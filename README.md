@@ -6,6 +6,7 @@
   - [Examples](#examples)
   - [Setup Instructions](#setup-instructions)
   - [Run](#run)
+  - [Background media:](#background-media)
   - [Contributing](#contributing)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -97,6 +98,9 @@ Follow these steps to set up the project:
 
 ## Run
 run `make start` in your terminal and insert the reddit post link when is asked. The generated contet will be saved in the `assets` folder.
+
+## Background media:
+If you want to add more background media, you can do so by adding YouTube links to the `data/background_audios.json` and `data/background_videos.json`.If you want to download all background media in one go, you can use the `download_background_media.py` by running the makefile command: `make download`.
 
 ## Contributing
 Contributions are welcome!  Please submit pull requests with your proposed changes.
