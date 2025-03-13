@@ -16,6 +16,8 @@ repos:
       - id: mixed-line-ending
       - id: trailing-whitespace
       - id: fix-encoding-pragma
+      - id: check-byte-order-marker
+      - id: detect-private-key
 
   # Black, the code formatter, natively supports pre-commit
   - repo: https://github.com/psf/black
@@ -33,6 +35,10 @@ repos:
     rev: v2.3.1
     hooks:
       - id: autoflake
+        name: autoflake
+        entry: autoflake --in-place --remove-all-unused-imports --recursive --ignore-init-module-imports
+        language: python
+        types: [ python ]
 
   - repo: https://github.com/hhatto/autopep8
     rev: v2.3.1
@@ -95,3 +101,4 @@ repos:
     hooks:
       - id: isort
         name: isort (python)
+        language_version: python3.11
