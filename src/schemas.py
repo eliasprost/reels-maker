@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import json
-from typing import List
+from typing import ClassVar, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class BackgroundFile(BaseModel):
@@ -59,10 +59,10 @@ class RedditPost(BaseModel):
     body: str
     comments: List[RedditComment]
     num_comments: int
-    tag: str
     author: str
     score: int
     permalink: str
+    tag: Optional[str]
 
     @property
     def lenght(self) -> int:
@@ -86,8 +86,38 @@ class RedditPost(BaseModel):
 
     @property
     def body_audio_path(self) -> str:
+        if len(self.body) == 0:
+            return None
         return f"assets/posts/{self.post_id}/audio/post_body.mp3"
 
     @property
     def url(self) -> str:
         return f"https://www.reddit.com{self.permalink}"
+
+
+class Speaker(BaseModel):
+    accepted_speakers: ClassVar[dict[str, str]] = {
+        "Gitta Nikolina": "female",
+        "Narelle Moon": "female",
+        "Abrahan Mack": "male",
+        "Damien Black": "male",
+    }
+
+    name: str
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        if value not in cls.accepted_speakers:
+            raise ValueError(
+                f"Invalid speaker name, please use one of the following: {', '.join(cls.accepted_speakers.keys())}",
+            )
+        return value
+
+    @property
+    def id(self) -> str:
+        return self.name.replace(" ", "_").lower()
+
+    @property
+    def gender(self) -> str:
+        return self.accepted_speakers[self.name]
