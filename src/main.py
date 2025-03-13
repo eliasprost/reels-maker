@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import json
+import os
 import random
 
+import langid
 import praw
+from loguru import logger
 
 from src.config import settings
+from src.schemas import Speaker
 from src.utils.background import download_file, parse_file
-from src.utils.media.audio import concatenate_audio_files, cut_audio, get_audio_duration
+from src.utils.media.audio import concatenate_audio_files, cut_audio
 from src.utils.media.video import (
     add_subtitle_to_video,
     combine_video_with_audio,
@@ -15,13 +19,14 @@ from src.utils.media.video import (
     create_image_videoclip,
     cut_video,
     extract_video_thumbnail,
+    get_video_duration,
     overlay_videos,
     resize_video,
 )
 from src.utils.reddit.post import parse_reddit_post
 from src.utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
-from src.utils.stt import speech_to_text
-from src.utils.tts import text_to_speech
+from src.utils.stt import stt
+from src.utils.tts import tts
 
 
 def main():
@@ -33,15 +38,18 @@ def main():
         URL = input("Invalid URL format. Please enter a valid Reddit post URL: ")
 
     # MAIN ARGS
-    N_COMMENTS = 3  # TODO: we need to change to use the video duration from settings.
+    N_COMMENTS = 10  # TODO: we need to change to use the video duration from settings.
     REDDIT_VIDEO_PATH = "assets/posts/{post_id}/video/reddit_video.mp4"
-    REDDIT_AUDIO_PATH = "assets/posts/{post_id}/audio/reddit_audio.mp3"
     BACKGROUND_VIDEO_PATH = "assets/posts/{post_id}/video/background_video_{suffix}.mp4"
     BACKGROUND_AUDIO_PATH = "assets/posts/{post_id}/audio/background_audio.mp3"
     BACKGROUND_AUDIO_VOLUME = (
         0.30  # TODO: we need to change this to use the video duration from settings.
     )
     REEL_PATH = "assets/posts/{post_id}/reel_{suffix}.mp4"
+    SPEAKER = "Abrahan Mack"
+    AUDIO_SPEED = (
+        1.5  # TODO: we need to change this to use the video duration from settings.
+    )
 
     # POST
     # Get Reddit post
@@ -56,20 +64,48 @@ def main():
 
     post = parse_reddit_post(reddit.submission(url=URL))
 
+    # Create asset post folder if it doesn't exist
+    if not os.path.exists(f"./assets/posts/{post.post_id}"):
+        os.makedirs(f"./assets/posts/{post.post_id}", exist_ok=True)
+
+    # Set logs
+    logger.add(f"./assets/posts/{post.post_id}/logs.log")
+
+    # Detect post language using post body
+    supported_langs = [
+        lang["lang_code"] for lang in json.load(open("./data/languages.json"))
+    ]
+    language = langid.classify(post.title + ": " + post.body)[0].strip()
+    logger.info(f"Post {post.post_id} detected as {language}")
+
+    if language not in supported_langs:
+        error = f"Language {language} not supported. Please, choose a supported language: {supported_langs}"
+        logger.error(error)
+        raise ValueError(error)
+
     # Generate post audio files and
-    text_to_speech.generate_audio_clip(
+    speaker = Speaker(name=SPEAKER)
+
+    tts.generate_audio_clip(
         post.title,
+        language=language,
         output_path=post.title_audio_path,
-        speed=1.3,  # TODO: we need to change this to use the video duration from settings.
+        speaker=speaker.name,
+        speed=AUDIO_SPEED,
     )
-    text_to_speech.generate_audio_clip(
+    tts.generate_audio_clip(
         post.body,
+        language=language,
+        speaker=speaker.name,
         output_path=post.body_audio_path,
-        speed=1.3,  # TODO: we need to change this to use the video duration from settings.
+        speed=AUDIO_SPEED,
     )
 
+    # We filter None values to deal with post without body text
+    post_audios = list(filter(None, [post.title_audio_path, post.body_audio_path]))
+
     concatenate_audio_files(
-        files=[post.title_audio_path, post.body_audio_path],
+        files=post_audios,
         silence_duration=0.2,  # TODO: we need to change this to use the video duration from settings.
         output_file=post.audio_path,
     )
@@ -93,10 +129,12 @@ def main():
 
     # Generate audio files for comments
     for comment in top_comments:
-        text_to_speech.generate_audio_clip(
+        tts.generate_audio_clip(
             comment.body,
+            speaker=speaker.name,
+            language=language,
             output_path=comment.audio_path,
-            speed=1.3,  # TODO: we need to change this to use the video duration from settings.
+            speed=AUDIO_SPEED,
         )
 
     # Get the comments screenshots
@@ -111,24 +149,44 @@ def main():
             output_path=comment.video_path,
         )
 
+    # Generate outro clip
+    outro = [
+        lang["outro"]
+        for lang in json.load(open("./data/languages.json"))
+        if lang["lang_code"] == language
+    ]
+
+    if len(outro) == 0:
+        logger.error(f"Language {language} outro not found.")
+        raise ValueError(f"Language {language} outro not found.")
+    else:
+        tts.generate_audio_clip(
+            text=outro[0],
+            language=language,
+            output_path=f"./assets/others/outro_{language}_{speaker.id}.mp3",
+            speaker=speaker.name,
+            speed=AUDIO_SPEED,
+        )
+
+    create_image_videoclip(
+        image_path="./assets/others/outro.png",
+        audio_path=f"./assets/others/outro_{language}_{speaker.id}.mp3",
+        output_path=f"./assets/others/outro_{language}_{speaker.id}.mp4",
+    )
+
     # MAIN VIDEO
     # Reddit video
     # Concatenate all videos
-    all_videos = [post.video_path] + [comment.video_path for comment in top_comments]
-    concatenate_videos(all_videos, REDDIT_VIDEO_PATH.format(post_id=post.post_id))
-
-    # Concatenate all audios
-    all_audios = [post.audio_path] + [comment.audio_path for comment in top_comments]
-    concatenate_audio_files(
-        files=all_audios,
-        silence_duration=0.1,
-        output_file=REDDIT_AUDIO_PATH.format(post_id=post.post_id),
+    all_videos = (
+        [post.video_path]
+        + [comment.video_path for comment in top_comments]
+        + [f"./assets/others/outro_{language}_{speaker.id}.mp4"]
     )
+    concatenate_videos(all_videos, REDDIT_VIDEO_PATH.format(post_id=post.post_id))
 
     # Background video
     # Get reddit reference video duration
-    # TEMP
-    video_duration = get_audio_duration(REDDIT_VIDEO_PATH.format(post_id=post.post_id))
+    video_duration = get_video_duration(REDDIT_VIDEO_PATH.format(post_id=post.post_id))
 
     # Get and download a random background videos and audio
     audios = [
@@ -202,20 +260,20 @@ def main():
     )
 
     # Add subtitles to the video
-    subs_segments = speech_to_text.transcribe_audio(
+    subs_segments = stt.transcribe_audio(
         input_file=REEL_PATH.format(post_id=post.post_id, suffix="raw"),
-        language="es",  # TODO: we need to change this to use the video duration from settings.
+        language=language,
     )
 
     # Generate SRT file
-    speech_to_text.generate_srt_file(
+    stt.generate_srt_file(
         segments=subs_segments,
         input_file=REEL_PATH.format(post_id=post.post_id, suffix="raw"),
         output_directory=f"assets/posts/{post.post_id}/",
     )
 
     # Transform SRT to ASS format
-    speech_to_text.srt_to_ass(
+    stt.srt_to_ass(
         input_file=f"assets/posts/{post.post_id}/reel_raw.srt",
         delete_srt=True,
     )

@@ -133,4 +133,4 @@ class SpeechToText:
             logger.info(f"SRT file was removed from your disk:{input_file}")
 
 
-speech_to_text = SpeechToText()
+stt = SpeechToText()
