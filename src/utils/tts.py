@@ -3,14 +3,15 @@ import os
 import re
 import time
 
+import torch
 from loguru import logger
-from melo.api import TTS
+from TTS.api import TTS
 
 
 class TextToSpeech:
-    def __init__(self, language: str = "ES", device: str = "cpu"):
-        self.model = TTS(language=language, device=device)
-        self.speaker_ids = self.model.hps.data.spk2id
+    def __init__(self, model_name="tts_models/multilingual/multi-dataset/xtts_v2"):
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = TTS(model_name=model_name, progress_bar=False).to(self.device)
 
     def sanitize_text(self, text: str) -> str:
         """
@@ -32,14 +33,16 @@ class TextToSpeech:
         regex_expr = r"\s['|’]|['|’]\s|[\^_~@!&;#:\-%—“”‘\"%\*/{}\[\]\(\)\\|<>=+]"
         result = re.sub(regex_expr, " ", result)
         result = result.replace("+", "plus").replace("&", "and")
+        result = " ".join(result.split())
 
-        # remove extra whitespace
-        return " ".join(result.split())
+        return result[:-1] if result.endswith(".") else result
 
     def generate_audio_clip(
         self,
         text: str,
         output_path: str,
+        language: str,
+        speaker: str = "Abrahan Mack",
         speed: float = 1.0,
     ) -> None:
         """
@@ -48,8 +51,15 @@ class TextToSpeech:
         Args:
             text: Text to convert to speech
             output_path: Path to save the audio clip
+            language: Language of the text.
+            speaker: Speaker to use for the audio clip. Default is "Abrahan Mack".
             speed: Speed of the audio clip. Default is 1.0
+
         """
+
+        if not output_path:
+            logger.info(f"Text is empty: {text}. Skipping generation.")
+            return
 
         if os.path.exists(output_path):
             logger.info(
@@ -66,12 +76,14 @@ class TextToSpeech:
             sanitized_text = self.sanitize_text(text)
             start = time.time()
             self.model.tts_to_file(
-                sanitized_text,
-                self.speaker_ids["ES"],
-                output_path,
+                text=sanitized_text,
+                language=language,
+                file_path=output_path,
+                speaker=speaker,
                 speed=speed,
             )
             end = time.time()
+
             logger.info(
                 f"Audio clip generated: {output_path} in {end - start:.2f} seconds",
             )
@@ -81,4 +93,4 @@ class TextToSpeech:
             raise e
 
 
-text_to_speech = TextToSpeech()
+tts = TextToSpeech()
