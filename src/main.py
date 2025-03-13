@@ -25,7 +25,7 @@ from src.utils.media.video import (
 )
 from src.utils.reddit.post import parse_reddit_post
 from src.utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
-from src.utils.stt import speech_to_text
+from src.utils.stt import stt
 from src.utils.tts import tts
 
 
@@ -260,20 +260,20 @@ def main():
     )
 
     # Add subtitles to the video
-    subs_segments = speech_to_text.transcribe_audio(
+    subs_segments = stt.transcribe_audio(
         input_file=REEL_PATH.format(post_id=post.post_id, suffix="raw"),
         language=language,
     )
 
     # Generate SRT file
-    speech_to_text.generate_srt_file(
+    stt.generate_srt_file(
         segments=subs_segments,
         input_file=REEL_PATH.format(post_id=post.post_id, suffix="raw"),
         output_directory=f"assets/posts/{post.post_id}/",
     )
 
     # Transform SRT to ASS format
-    speech_to_text.srt_to_ass(
+    stt.srt_to_ass(
         input_file=f"assets/posts/{post.post_id}/reel_raw.srt",
         delete_srt=True,
     )
