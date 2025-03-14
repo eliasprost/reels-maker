@@ -20,4 +20,4 @@ download:
 
 start:
 	@echo "Running the main.py..."
-	python -m src.main
+	python -m src.main $(ARGS)

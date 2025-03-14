@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import argparse
 import asyncio
 import json
 import os
@@ -13,7 +14,7 @@ from src.schemas import Speaker
 from src.utils.background import download_file, parse_file
 from src.utils.media.audio import concatenate_audio_files, cut_audio
 from src.utils.media.video import (
-    add_subtitle_to_video,
+    add_captions,
     combine_video_with_audio,
     concatenate_videos,
     create_image_videoclip,
@@ -31,24 +32,35 @@ from src.utils.tts import tts
 
 def main():
 
-    # Add a sys arg to take the URL from the CLI
-    URL = input("Enter the URL of the Reddit post: ")
+    # Get command line arguments. TODO: refactor this into a config file or something
+    parser = argparse.ArgumentParser(description="Run the Reddit reels maker script")
+    parser.add_argument("--url", type=str, default="", help="URL Reddit post")
+    parser.add_argument(
+        "--n",
+        type=int,
+        default=5,
+        help="Number of comments to process",
+    )
+    args = parser.parse_args()
 
+    URL = args.url
     while not URL.startswith("https://www.reddit.com"):
         URL = input("Invalid URL format. Please enter a valid Reddit post URL: ")
 
     # MAIN ARGS
-    N_COMMENTS = 10  # TODO: we need to change to use the video duration from settings.
+    N_COMMENTS = (
+        args.n
+    )  # TODO: we need to change to use the video duration from settings.
     REDDIT_VIDEO_PATH = "assets/posts/{post_id}/video/reddit_video.mp4"
     BACKGROUND_VIDEO_PATH = "assets/posts/{post_id}/video/background_video_{suffix}.mp4"
     BACKGROUND_AUDIO_PATH = "assets/posts/{post_id}/audio/background_audio.mp3"
     BACKGROUND_AUDIO_VOLUME = (
-        0.30  # TODO: we need to change this to use the video duration from settings.
+        0.20  # TODO: we need to change this to use the video duration from settings.
     )
     REEL_PATH = "assets/posts/{post_id}/reel_{suffix}.mp4"
     SPEAKER = "Abrahan Mack"
     AUDIO_SPEED = (
-        1.5  # TODO: we need to change this to use the video duration from settings.
+        1.3  # TODO: we need to change this to use the video duration from settings.
     )
 
     # POST
@@ -79,7 +91,7 @@ def main():
     logger.info(f"Post {post.post_id} detected as {language}")
 
     if language not in supported_langs:
-        error = f"Language {language} not supported. Please, choose a supported language: {supported_langs}"
+        error = f"{language} not supported. Please, choose a supported language: {supported_langs}"
         logger.error(error)
         raise ValueError(error)
 
@@ -106,7 +118,8 @@ def main():
 
     concatenate_audio_files(
         files=post_audios,
-        silence_duration=0.2,  # TODO: we need to change this to use the video duration from settings.
+        # TODO: we need to change this to use the video duration from settings.
+        silence_duration=0.2,
         output_file=post.audio_path,
     )
 
@@ -279,7 +292,7 @@ def main():
     )
 
     # Add subtitle to video
-    add_subtitle_to_video(
+    add_captions(
         input_file=REEL_PATH.format(post_id=post.post_id, suffix="raw"),
         output_file=REEL_PATH.format(post_id=post.post_id, suffix="subtitled"),
         subtitle_path=f"assets/posts/{post.post_id}/reel_raw.ass",

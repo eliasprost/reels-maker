@@ -1,5 +1,25 @@
 # -*- coding: utf-8 -*-
+import subprocess
+from typing import Literal
+
 from pydantic_settings import BaseSettings
+
+
+def is_videotoolbox_available() -> bool:
+    """
+    Check if h264_videotoolbox is available on the system. In other words check if
+    the you have a GPU that supports hardware acceleration.
+    """
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-hide_banner", "-encoders"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return "h264_videotoolbox" in result.stdout
+    except Exception:
+        return False
 
 
 class Settings(BaseSettings):
@@ -20,6 +40,8 @@ class Settings(BaseSettings):
     - SCREEN_WIDTH: The width of the screen in pixels.
     - PYTHONWARNINGS: The warnings to be ignored.
     - TOKENIZERS_PARALLELISM: The parallelism of the tokenizers.
+    - HAS_GPU: Whether a GPU is available for video processing.
+    - PRESET: The preset for the video processing.
     """
 
     # Main video settings
@@ -38,6 +60,9 @@ class Settings(BaseSettings):
     # Others
     PYTHONWARNINGS: str = "ignore"
     TOKENIZERS_PARALLELISM: str = "true"
+    HAS_GPU: bool = False
+    USE_GPU: bool = is_videotoolbox_available()
+    PRESET: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = "slow"
 
     class Config:
         env_file = ".env"
