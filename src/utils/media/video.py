@@ -25,7 +25,7 @@ def create_image_videoclip(
     image_path: str,
     audio_path: str,
     output_path: str,
-    preset: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = "slow",
+    preset: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = settings.PRESET,
 ) -> None:
     """
     Combine an image and audio into an MP4 video.
@@ -34,7 +34,8 @@ def create_image_videoclip(
         image_path (str): Path to the image file.
         audio_path (str): Path to the audio file.
         output_path (str): Path to save the output video.
-        preset (literal["veryslow", "slow", "medium", "fast", "veryfast"]): Encoding preset. Default is "slow".
+        preset (literal["veryslow", "slow", "medium", "fast", "veryfast"]): Encoding preset.
+            Default is "slow".
     """
 
     # Check if the video already exists
@@ -50,13 +51,14 @@ def create_image_videoclip(
         input_audio = ffmpeg.input(audio_path)
 
         output_args = {
-            "c:v": "libx264",
+            "c:v": "h264_videotoolbox" if settings.USE_GPU else "libx264",
             "c:a": "aac",
             "t": get_audio_duration(audio_path),
             "pix_fmt": "yuv420p",
             "preset": preset,
-            "crf": 24,
-            "b:a": "192k",
+            "crf": 18,
+            "b:v": "5000k" if settings.USE_GPU else "3000k",
+            "b:a": "256k",
         }
         (
             ffmpeg.output(input_image, input_audio, output_path, **output_args)
@@ -73,7 +75,7 @@ def create_image_videoclip(
 def concatenate_videos(
     video_paths: List[str],
     output_path: str,
-    preset: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = "slow",
+    preset: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = settings.PRESET,
 ) -> None:
     """
     Concatenate videos while normalizing only the audio (leaving video untouched).
@@ -85,7 +87,8 @@ def concatenate_videos(
     Args:
         video_paths (List[str]): List of video file paths to concatenate.
         output_path (str): Path to save the resulting concatenated video.
-        preset (literal["veryslow", "slow", "medium", "fast", "veryfast"]): Encoding preset for audio processing.
+        preset (literal["veryslow", "slow", "medium", "fast", "veryfast"]):
+            Encoding preset for audio processing.
     """
 
     if os.path.exists(output_path):
@@ -113,10 +116,14 @@ def concatenate_videos(
                 audio_stream,
                 temp_output,
                 **{
+                    "vcodec": "h264_videotoolbox" if settings.USE_GPU else "libx264",
                     "c:v": "copy",
                     "acodec": "aac",
-                    "b:a": "192k",
+                    "crf": 18,
+                    "b:v": "5000k" if settings.USE_GPU else "3000k",
+                    "b:a": "256k",
                     "avoid_negative_ts": "make_zero",
+                    "preset": preset,
                 },
             ).overwrite_output().run()
             temp_paths.append(temp_output)
@@ -127,7 +134,7 @@ def concatenate_videos(
                 abs_path = os.path.abspath(temp_path)
                 f.write(f"file '{abs_path}'\n")
 
-        # Step 3: Concatenate the videos using the concat demuxer, copying streams to avoid re-encoding
+        # Step 3: Concatenate the videos using demuxer, copying streams to avoid re-encoding
         ffmpeg.input(list_file, format="concat", safe=0).output(
             output_path,
             **{"c": "copy"},
@@ -154,7 +161,7 @@ def cut_video(
     start_time: float = None,
     end_time: float = None,
     duration: float = settings.MIN_VIDEO_DURATION,
-    preset: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = "slow",
+    preset: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = settings.PRESET,
 ) -> None:
     """
     Cut a video between start_time and end_time and save it at output_path.
@@ -165,7 +172,8 @@ def cut_video(
         start_time (float): Start time in seconds.
         end_time (float): End time in seconds.
         duration (float): Duration of the output video in seconds. Default is MIN_VIDEO_DURATION.
-        preset (literal["veryslow", "slow", "medium", "fast", "veryfast"]): Encoding preset. Default is "slow".
+        preset (literal["veryslow", "slow", "medium", "fast", "veryfast"]): Encoding preset.
+            Default is "slow".
     """
 
     if os.path.exists(output_path):
@@ -202,13 +210,14 @@ def cut_video(
         output_duration = end_time - start_time
 
         output_args = {
-            "vcodec": "libx264",
+            "vcodec": "h264_videotoolbox" if settings.USE_GPU else "libx264",
             "acodec": "aac",
             "pix_fmt": "yuv420p",
             "t": output_duration,
             "preset": preset,
-            "crf": 24,
-            "b:a": "192k",
+            "crf": 18,
+            "b:v": "5000k" if settings.USE_GPU else "3000k",
+            "b:a": "256k",
         }
 
         (
@@ -287,7 +296,7 @@ def resize_video(
         (
             filter_chain.output(
                 output_path,
-                vcodec="libx264",
+                vcodec="h264_videotoolbox" if settings.USE_GPU else "libx264",
                 acodec="aac",
                 pix_fmt="yuv420p",
             )
@@ -295,8 +304,9 @@ def resize_video(
             .run()
         )
 
+        resize_info = "with cropping" if zoom_crop else "with padding"
         logger.info(
-            f"Video resized {'with cropping' if zoom_crop else 'with padding'} to {width}x{height} at: {output_path}",
+            f"Video resized {resize_info} to {width}x{height} at: {output_path}",
         )
 
     except ffmpeg.Error as e:
@@ -360,24 +370,29 @@ def overlay_videos(
     background_video: str,
     overlay_video: str,
     output_path: str,
-    preset: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = "slow",
+    preset: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = settings.PRESET,
     position: str = "center",
     zoom: float = 1.0,
 ) -> None:
     """
-    Overlay one video onto another while maintaining original audio levels and background resolution.
+    Overlay one video onto another while maintaining original audio levels and background
+    resolution.
 
-    The overlay video is scaled to fit inside the background (keeping its aspect ratio), with an optional zoom factor.
-    The audio streams from both videos are processed (with aresample for the background and volume boost for the
-    overlay) and then mixed.
+    The overlay video is scaled to fit inside the background (keeping its aspect ratio), with an
+    optional zoom factor. The audio streams from both videos are processed (with aresample for the
+    background and volume boost for the overlay) and then mixed.
 
     Args:
-        background_video (str): The main background video (resolution & aspect ratio will be taken from here).
+        background_video (str): The main background video
+            (resolution & aspect ratio will be taken from here).
         overlay_video (str): The video that will be placed on top.
         output_path (str): Path to the output video file.
-        preset (literal["veryslow", "slow", "medium", "fast", "veryfast"]): Encoding preset. Default is "slow".
-        position (str): Position of the overlay video ('up', 'down', 'center', 'left', 'right'). Default is 'center'.
-        zoom (float): Scale factor for the overlay video (1.0 = default size, >1.0 = larger, <1.0 = smaller).
+        preset (literal["veryslow", "slow", "medium", "fast", "veryfast"]): Encoding preset.
+            Default is "slow".
+        position (str): Position of the overlay video ('up', 'down', 'center', 'left', 'right').
+            Default is 'center'.
+        zoom (float): Scale factor for the overlay video
+            (1.0 = default size, >1.0 = larger, <1.0 = smaller).
     """
 
     # check if output_path exists
@@ -423,7 +438,10 @@ def overlay_videos(
         ov = ffmpeg.input(overlay_video)
 
         # Scale overlay video while preserving aspect ratio
-        ov_scaled = ov.video.filter(
+        # Get background frame rate from metadata
+        bg_fps = bg_probe["streams"][0]["r_frame_rate"]
+
+        ov_scaled = ov.video.filter("fps", fps=bg_fps).filter(
             "scale",
             f"min(iw,{max_width})",
             f"min(ih,{max_height})",
@@ -432,8 +450,6 @@ def overlay_videos(
 
         # Overlay the scaled video on top of the background video
         video_out = ffmpeg.overlay(bg.video, ov_scaled, x=x, y=y)
-
-        # Process audio streams:
         bg_audio_fixed = bg.audio.filter("aresample", **{"async": 500}).filter(
             "volume",
             1.0,
@@ -448,18 +464,19 @@ def overlay_videos(
             [bg_audio_fixed, ov_audio_fixed],
             "amix",
             inputs=2,
-            dropout_transition=2,
+            dropout_transition=0.2,
             duration="longest",
-            normalize=True,
+            normalize=False,
         )
 
         output_args = {
-            "vcodec": "libx264",
-            "acodec": "mp3",
+            "vcodec": "h264_videotoolbox" if settings.USE_GPU else "libx264",
+            "acodec": "aac",
             "pix_fmt": "yuv420p",
             "preset": preset,
-            "crf": 24,
-            "b:a": "192k",  # Higher audio bitrate
+            "crf": 18,
+            "b:v": "5000k" if settings.USE_GPU else "3000k",
+            "b:a": "256k",
         }
 
         # Combine video and audio outputs and set output parameters.
@@ -476,7 +493,7 @@ def overlay_videos(
         raise e
 
 
-def add_subtitle_to_video(
+def add_captions(
     input_file: str,
     output_file: str,
     subtitle_path: str,
