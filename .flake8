@@ -1,6 +1,6 @@
 [flake8]
 ignore = W504, W503, N806, B001
-max-line-length = 88
+max-line-length = 100
 per-file-ignores =
     __init__.py:F401
 exclude =
