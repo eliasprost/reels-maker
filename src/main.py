@@ -48,7 +48,7 @@ def main():
     REEL_PATH = "assets/posts/{post_id}/reel_{suffix}.mp4"
     SPEAKER = "Abrahan Mack"
     AUDIO_SPEED = (
-        1.5  # TODO: we need to change this to use the video duration from settings.
+        1.3  # TODO: we need to change this to use the video duration from settings.
     )
 
     # POST
@@ -79,7 +79,7 @@ def main():
     logger.info(f"Post {post.post_id} detected as {language}")
 
     if language not in supported_langs:
-        error = f"Language {language} not supported. Please, choose a supported language: {supported_langs}"
+        error = f"{language} not supported. Please, choose a supported language: {supported_langs}"
         logger.error(error)
         raise ValueError(error)
 
@@ -106,7 +106,8 @@ def main():
 
     concatenate_audio_files(
         files=post_audios,
-        silence_duration=0.2,  # TODO: we need to change this to use the video duration from settings.
+        # TODO: we need to change this to use the video duration from settings.
+        silence_duration=0.2,
         output_file=post.audio_path,
     )
 
