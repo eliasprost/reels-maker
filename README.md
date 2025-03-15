@@ -2,7 +2,7 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [Reddit Reels Maker](#reddit-reels-maker)
+- [Reels Maker](#reels-maker)
   - [Examples](#examples)
   - [Setup Instructions](#setup-instructions)
   - [Run](#run)
@@ -12,8 +12,8 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# Reddit Reels Maker
-This repository provides the structure for automatically generating videos from Reddit posts. This repository
+# Reels Maker
+This repository provides the structure for automatically generating videos for social media. This repository
 is under development, so it may not be fully functional.
 
 ## Examples
