@@ -62,6 +62,7 @@ def main():
     AUDIO_SPEED = (
         1.3  # TODO: we need to change this to use the video duration from settings.
     )
+    THEME = "light"
 
     # POST
     # Get Reddit post
@@ -124,7 +125,7 @@ def main():
     )
 
     # Get the post screenshot
-    asyncio.run(take_post_screenshot(post))
+    asyncio.run(take_post_screenshot(post, THEME))
 
     # Generate post video: combine audio and image
     create_image_videoclip(
@@ -152,7 +153,7 @@ def main():
 
     # Get the comments screenshots
     for comment in top_comments:
-        asyncio.run(take_comment_screenshot(comment))
+        asyncio.run(take_comment_screenshot(comment, THEME))
 
     # Generate comments videos: combine audio and image
     for comment in top_comments:

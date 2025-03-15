@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     - SCREEN_WIDTH: The width of the screen in pixels.
     - PYTHONWARNINGS: The warnings to be ignored.
     - TOKENIZERS_PARALLELISM: The parallelism of the tokenizers.
-    - HAS_GPU: Whether a GPU is available for video processing.
+    - USE_GPU: Whether to use GPU for video processing.
     - PRESET: The preset for the video processing.
     """
 
@@ -60,7 +60,6 @@ class Settings(BaseSettings):
     # Others
     PYTHONWARNINGS: str = "ignore"
     TOKENIZERS_PARALLELISM: str = "true"
-    HAS_GPU: bool = False
     USE_GPU: bool = is_videotoolbox_available()
     PRESET: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = "slow"
 

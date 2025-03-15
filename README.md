@@ -7,6 +7,7 @@
   - [Setup Instructions](#setup-instructions)
   - [Run](#run)
   - [Background media:](#background-media)
+  - [Makefile available commands](#makefile-available-commands)
   - [Contributing](#contributing)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -90,6 +91,9 @@ Follow these steps to set up the project:
     SCREEN_HEIGHT=1920
     SCREEN_WIDTH=1080
     MIN_VIDEO_DURATION=70.0
+
+    # Others
+    PRESET=slow
     ```
 
     **Notes:**
