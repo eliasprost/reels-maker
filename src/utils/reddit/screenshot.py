@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import os
-from typing import Tuple
+from typing import Literal, Tuple
 
 from loguru import logger
 from PIL import Image
@@ -9,8 +9,6 @@ from playwright.async_api import Browser, BrowserContext, async_playwright
 
 from src.config import settings
 from src.schemas import RedditComment, RedditPost
-
-COOKIES_FILE_PATH = "./data/cookies/cookie-dark-mode.json"
 
 
 async def login_reddit(context: BrowserContext, timeout: int = 5000) -> BrowserContext:
@@ -52,7 +50,7 @@ async def login_reddit(context: BrowserContext, timeout: int = 5000) -> BrowserC
 async def build_browser_context(
     playwright_instance: async_playwright,
     url: str,
-    cookie_file_path: str = COOKIES_FILE_PATH,
+    cookie_file_path: str,
     timeout: int = 5000,
 ) -> Tuple[BrowserContext, Browser]:
     """
@@ -104,7 +102,10 @@ async def build_browser_context(
     return page, browser
 
 
-async def take_post_screenshot(post: RedditPost) -> None:
+async def take_post_screenshot(
+    post: RedditPost,
+    theme: Literal["dark", "light"] = "dark",
+) -> None:
     """
     Take and save a screenshot of the main post in a Reddit post/thread
 
@@ -118,7 +119,11 @@ async def take_post_screenshot(post: RedditPost) -> None:
         return
 
     async with async_playwright() as p:
-        context, browser = await build_browser_context(p, url=post.url)
+        context, browser = await build_browser_context(
+            p,
+            cookie_file_path=f"./data/cookies/cookie-{theme}-mode.json",
+            url=post.url,
+        )
         await context.locator("shreddit-post").screenshot(path=post.image_path)
         logger.info(f"Main post screenshot saved to: {post.image_path}")
         await browser.close()
@@ -147,7 +152,10 @@ def join_images_vertically(image_paths: list, output_path: str) -> None:
     logger.info(f"Combined image saved to: {output_path}")
 
 
-async def take_comment_screenshot(comment: RedditComment) -> None:
+async def take_comment_screenshot(
+    comment: RedditComment,
+    theme: Literal["dark", "light"] = "dark",
+) -> None:
     """
     Take and save a screenshot of a comment, EXCLUDING replies.
 
@@ -160,7 +168,11 @@ async def take_comment_screenshot(comment: RedditComment) -> None:
         return
 
     async with async_playwright() as p:
-        page, browser = await build_browser_context(p, comment.url)
+        page, browser = await build_browser_context(
+            p,
+            cookie_file_path=f"./data/cookies/cookie-{theme}-mode.json",
+            url=comment.url,
+        )
 
         # Locate the target comment elements
         comment_header = page.get_by_label(
