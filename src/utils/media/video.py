@@ -462,11 +462,11 @@ def overlay_videos(
 
         # Overlay the scaled video on top of the background video
         video_out = ffmpeg.overlay(bg.video, ov_scaled, x=x, y=y)
-        bg_audio_fixed = bg.audio.filter("aresample", **{"async": 500}).filter(
+        bg_audio_fixed = bg.audio.filter(
             "volume",
             1.0,
         )
-        ov_audio_fixed = ov.audio.filter("aresample", **{"async": 500}).filter(
+        ov_audio_fixed = ov.audio.filter(
             "volume",
             1.25,
         )
