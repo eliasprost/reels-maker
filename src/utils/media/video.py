@@ -161,6 +161,7 @@ def cut_video(
     start_time: float = None,
     end_time: float = None,
     duration: float = settings.MIN_VIDEO_DURATION,
+    avoid_transitions: bool = True,
     preset: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = settings.PRESET,
 ) -> None:
     """
@@ -172,6 +173,8 @@ def cut_video(
         start_time (float): Start time in seconds.
         end_time (float): End time in seconds.
         duration (float): Duration of the output video in seconds. Default is MIN_VIDEO_DURATION.
+        avoid_transitions (bool): Avoid transitions (intros/outros) between cuts. It will avoid
+            the first and last 30 sec. of the video. Default is True.
         preset (literal["veryslow", "slow", "medium", "fast", "veryfast"]): Encoding preset.
             Default is "slow".
     """
@@ -185,35 +188,43 @@ def cut_video(
         output_dir = os.path.dirname(output_path)
         if output_dir and not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        # Create output directory if it doesn't exist
-        output_dir = os.path.dirname(output_path)
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir)
 
         input_duration = int(get_audio_duration(input_path))
 
+        transition_length = 30
         if not start_time or not end_time:
-            # Define random interval of 70 seconds between the video duration
-            if input_duration < duration:
-                start_time = 0
-                end_time = input_duration
+            # Define valid range while avoiding the first and last 30 seconds
+            min_start = (
+                transition_length
+                if avoid_transitions and input_duration > (transition_length * 2)
+                else 0
+            )
+            max_end = (
+                input_duration - transition_length
+                if avoid_transitions and input_duration > (transition_length * 2)
+                else input_duration
+            )
 
+            if max_end - min_start < duration:
+                # If avoiding transitions makes the video too short, use the full range
+                start_time = min_start
+                end_time = max_end
                 logger.info(
-                    f"Video duration is less than {duration}s. Keeping the full video.",
+                    f"""Video too short to avoid transitions. Using full range:
+                        - {start_time}s to {end_time}s.
+                    """,
                 )
-
             else:
-                start_time = random.randint(0, int(input_duration - duration))
+                # Choose a random interval within the valid range
+                start_time = random.randint(min_start, int(max_end - duration))
                 end_time = start_time + int(duration)
 
-        # To get if the video is shorter than the duration
-        output_duration = end_time - start_time
-
+        # Define output settings
         output_args = {
             "vcodec": "h264_videotoolbox" if settings.USE_GPU else "libx264",
             "acodec": "aac",
             "pix_fmt": "yuv420p",
-            "t": output_duration,
+            "t": end_time - start_time,
             "preset": preset,
             "crf": 18,
             "b:v": "5000k" if settings.USE_GPU else "3000k",
