@@ -3,18 +3,21 @@
         "title": "lofi",
         "url": "https://www.youtube.com/watch?v=LTphVIore3A",
         "file_name": "lofi.mp3",
-        "author": "Super Lofi World"
+        "author": "Super Lofi World",
+        "type": "background"
     },
     {
         "title": "lofi-2",
         "url": "https://www.youtube.com/watch?v=BEXL80LS0-I",
         "file_name": "lofi-2.mp3",
-        "author": "stompsPlaylist"
+        "author": "stompsPlaylist",
+        "type": "background"
     },
     {
         "title": "chill-summer",
         "url": "https://www.youtube.com/watch?v=EZE8JagnBI8",
         "file_name": "chill-summer.mp3",
-        "author": "Mellow Vibes Radio"
+        "author": "Mellow Vibes Radio",
+        "type": "background"
     }
 ]
