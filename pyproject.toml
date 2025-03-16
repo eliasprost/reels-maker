@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "reddit-reels-maker"
+name = "reels-maker"
 version = "0.1.0"
 description = ""
 authors = ["Elias Prost <elias.prost@gmail.com>"]

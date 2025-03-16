@@ -10,8 +10,7 @@ import praw
 from loguru import logger
 
 from src.config import settings
-from src.schemas import Speaker
-from src.utils.background import download_file, parse_file
+from src.schemas import MediaFile, Speaker
 from src.utils.media.audio import concatenate_audio_files, cut_audio
 from src.utils.media.video import (
     add_captions,
@@ -177,15 +176,15 @@ def main():
         tts.generate_audio_clip(
             text=outro[0],
             language=language,
-            output_path=f"./assets/others/outro_{language}_{speaker.id}.mp3",
+            output_path=f"./assets/others/outros/outro_{language}_{speaker.id}.mp3",
             speaker=speaker.name,
             speed=AUDIO_SPEED,
         )
 
     create_image_videoclip(
-        image_path="./assets/others/outro.png",
-        audio_path=f"./assets/others/outro_{language}_{speaker.id}.mp3",
-        output_path=f"./assets/others/outro_{language}_{speaker.id}.mp4",
+        image_path="./assets/others/outros/outro.png",
+        audio_path=f"./assets/others/outros/outro_{language}_{speaker.id}.mp3",
+        output_path=f"./assets/others/outros/outro_{language}_{speaker.id}.mp4",
     )
 
     # MAIN VIDEO
@@ -194,7 +193,7 @@ def main():
     all_videos = (
         [post.video_path]
         + [comment.video_path for comment in top_comments]
-        + [f"./assets/others/outro_{language}_{speaker.id}.mp4"]
+        + [f"./assets/others/outros/outro_{language}_{speaker.id}.mp4"]
     )
     concatenate_videos(all_videos, REDDIT_VIDEO_PATH.format(post_id=post.post_id))
 
@@ -204,11 +203,11 @@ def main():
 
     # Get and download a random background videos and audio
     audios = [
-        parse_file(audio) for audio in json.load(open("./data/background_audios.json"))
+        MediaFile(**audio) for audio in json.load(open("./data/background_audios.json"))
     ]
 
     videos = [
-        parse_file(video) for video in json.load(open("./data/background_videos.json"))
+        MediaFile(**video) for video in json.load(open("./data/background_videos.json"))
     ]
 
     # Get a random background video and audio
@@ -216,15 +215,12 @@ def main():
     random_audio = random.choice(audios)
 
     # Download random audio and video
-    download_file(random_audio)
-    download_file(random_video)
-
-    random_video_path = f"assets/background/video/{random_video.file_name}"
-    random_audio_path = f"assets/background/audio/{random_audio.file_name}"
+    random_audio.download()
+    random_video.download()
 
     # Cut and resize the background video
     cut_video(
-        input_path=random_video_path,
+        input_path=random_video.path,
         output_path=BACKGROUND_VIDEO_PATH.format(post_id=post.post_id, suffix="cutted"),
         duration=video_duration,
     )
@@ -242,7 +238,7 @@ def main():
 
     # Cut the background audio
     cut_audio(
-        input_path=random_audio_path,
+        input_path=random_audio.path,
         output_path=BACKGROUND_AUDIO_PATH.format(post_id=post.post_id),
         duration=video_duration,
         fade_duration=1,  # TODO: we need to change this to use the video duration from settings.

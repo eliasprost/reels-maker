@@ -16,7 +16,7 @@ install-dev:
 
 download:
 	@echo "Downloading all background media files..."
-	python scripts/download_background_media.py
+	python -m scripts.download_background_media
 
 start:
 	@echo "Running the main.py..."

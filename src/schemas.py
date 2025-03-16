@@ -1,27 +1,103 @@
 # -*- coding: utf-8 -*-
 import json
-from typing import ClassVar, List, Optional
+import os
+from pathlib import Path
+from typing import ClassVar, List, Literal, Optional
 
+import yt_dlp
+from loguru import logger
 from pydantic import BaseModel, field_validator
 
 
-class BackgroundFile(BaseModel):
+class MediaFile(BaseModel):
     title: str
     url: str
     file_name: str
     author: str
+    type: Literal["background", "others"] = "others"
+    path: Optional[str] = None  # Permite caminho personalizado
+
+    _file_mapping: ClassVar[dict] = json.load(open("data/file_mapping.json"))
 
     @property
     def file_type(self) -> str:
-        types = json.load(open("data/file_mapping.json"))
-        if self.file_name.split(".")[-1] in types["audio"]:
+        extension = os.path.splitext(self.file_name)[-1].lower().lstrip(".")
+        if extension in self._file_mapping.get("audio", []):
             return "audio"
-        elif self.file_name.split(".")[-1] in types["video"]:
+        elif extension in self._file_mapping.get("video", []):
             return "video"
         else:
-            raise ValueError(
-                f"File type not supported: {self.file_name.split('.')[-1]}",
+            raise ValueError(f"File type not supported: {extension}")
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if self.path is None:  # Se o usuário não forneceu um caminho, gera um padrão
+            self.path = os.path.join(
+                f"./assets/{self.type.lower()}",
+                self.file_type,
+                self.file_name,
             )
+
+    def download(self):
+        """
+        Downloads the media file from Youtube. It will take the
+        `file_type` from the MediaFile object and download it to
+        the corresponding directory and extension.
+
+        Args:
+            background (MediaFile): Media file object
+        """
+
+        # Check root file path
+        root_path = Path(self.path).parent
+
+        if not root_path.exists():
+            root_path.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Creating the {root_path} directory")
+
+        if Path(f"{root_path}/{self.file_name}").is_file():
+            logger.info(
+                f"Background audio {self.file_name} already exists. Skipping download.",
+            )
+            return
+
+        logger.info(f"Downloading {self.file_type} file: {self.file_name}")
+
+        ydl_opts = {
+            # We need to remove the file extension for audio files due to the postprocessing
+            "outtmpl": str(
+                Path(root_path)
+                / (
+                    self.file_name.split(".")[0]
+                    if self.file_type == "audio"
+                    else self.file_name
+                ),
+            ),
+            "postprocessors": [],
+            "format": "bestaudio/best" if self.file_type == "audio" else "bestvideo",
+        }
+
+        if self.file_type == "audio":
+            ydl_opts.update(
+                {
+                    "postprocessors": [
+                        {
+                            "key": "FFmpegExtractAudio",
+                            "preferredcodec": self.file_name.split(".")[-1],
+                            "preferredquality": "192",
+                        },
+                    ],
+                },
+            )
+
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([self.url])
+
+            logger.info(f"Downloaded {self.file_name} successfully")
+
+        except yt_dlp.utils.DownloadError as e:
+            logger.error(f"Failed to download {self.file_name}: {e}")
 
 
 class RedditComment(BaseModel):
@@ -110,7 +186,10 @@ class Speaker(BaseModel):
     def validate_name(cls, value: str) -> str:
         if value not in cls.accepted_speakers:
             raise ValueError(
-                f"Invalid speaker name, please use one of the following: {', '.join(cls.accepted_speakers.keys())}",
+                f"""
+                Invalid speaker name, please use one of the following:
+                {', '.join(cls.accepted_speakers.keys())}
+                """,
             )
         return value
 
