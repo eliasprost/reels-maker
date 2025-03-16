@@ -54,7 +54,7 @@ def main():
     BACKGROUND_VIDEO_PATH = "assets/posts/{post_id}/video/background_video_{suffix}.mp4"
     BACKGROUND_AUDIO_PATH = "assets/posts/{post_id}/audio/background_audio.mp3"
     BACKGROUND_AUDIO_VOLUME = (
-        0.20  # TODO: we need to change this to use the video duration from settings.
+        0.15  # TODO: we need to change this to use the video duration from settings.
     )
     REEL_PATH = "assets/posts/{post_id}/reel_{suffix}.mp4"
     SPEAKER = "Abrahan Mack"
