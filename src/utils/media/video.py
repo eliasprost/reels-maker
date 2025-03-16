@@ -161,7 +161,7 @@ def cut_video(
     start_time: float = None,
     end_time: float = None,
     duration: float = settings.MIN_VIDEO_DURATION,
-    avoid_transitions: bool = True,
+    transition_duration: int = 30,
     preset: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = settings.PRESET,
 ) -> None:
     """
@@ -173,8 +173,8 @@ def cut_video(
         start_time (float): Start time in seconds.
         end_time (float): End time in seconds.
         duration (float): Duration of the output video in seconds. Default is MIN_VIDEO_DURATION.
-        avoid_transitions (bool): Avoid transitions (intros/outros) between cuts. It will avoid
-            the first and last 30 sec. of the video. Default is True.
+        transition_duration (int): Remove seconds from the start and end of the video to avoid
+            transitions (intros/outros) between cuts. The default value is 30 seconds.
         preset (literal["veryslow", "slow", "medium", "fast", "veryfast"]): Encoding preset.
             Default is "slow".
     """
@@ -191,17 +191,18 @@ def cut_video(
 
         input_duration = int(get_audio_duration(input_path))
 
-        transition_length = 30
         if not start_time or not end_time:
             # Define valid range while avoiding the first and last 30 seconds
             min_start = (
-                transition_length
-                if avoid_transitions and input_duration > (transition_length * 2)
+                transition_duration
+                if transition_duration > 0
+                and input_duration > (transition_duration * 2)
                 else 0
             )
             max_end = (
-                input_duration - transition_length
-                if avoid_transitions and input_duration > (transition_length * 2)
+                input_duration - transition_duration
+                if transition_duration > 0
+                and input_duration > (transition_duration * 2)
                 else input_duration
             )
 
