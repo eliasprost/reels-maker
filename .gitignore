@@ -143,6 +143,9 @@ pyrightconfig.json
 # Jetbrains
 .idea/
 
+# VSCode
+.vscode/
+
 # Sandbox files
 sandbox.ipynb
 
