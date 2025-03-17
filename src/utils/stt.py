@@ -38,7 +38,6 @@ class SpeechToText:
 
         except Exception as e:
             logger.error(f"Error generating transcription segments: {e}")
-            raise e
 
     def generate_srt_file(
         self,
@@ -77,7 +76,6 @@ class SpeechToText:
 
         except Exception as e:
             logger.error(f"Error generating SRT file: {e}")
-            raise e
 
     def srt_to_ass(
         self,
@@ -91,9 +89,10 @@ class SpeechToText:
 
         Args:
             input_file: Path to the SRT file.
-            output_file: Path to the output ASS file. If not provided, it will be generated in the same directory as
-                input_file.
-            config: Configuration dict for ASS v4 Styles+. For more information: http://www.tcax.org/docs/ass-specs.htm
+            output_file: Path to the output ASS file. If not provided, it will be generated in the
+                same directory as input_file.
+            config: Configuration dict for ASS v4 Styles+. For more information:
+                http://www.tcax.org/docs/ass-specs.htm
             delete_srt: Whether to delete the SRT file after conversion. Default is False.
         """
 
