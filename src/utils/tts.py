@@ -25,7 +25,7 @@ class TextToSpeech:
         """  # noqa: W605
 
         # remove any urls from the text
-        regex_urls = r"((http|https)\:\/\/)?[a-zA-Z0-9\.\/\?\:@\-_=#]+\.([a-zA-Z]){2,6}([a-zA-Z0-9\.\&\/\?\:@\-_=#])*"
+        regex_urls = r"((http|https)\:\/\/)?[a-zA-Z0-9\.\/\?\:@\-_=#]+\.([a-zA-Z]){2,6}([a-zA-Z0-9\.\&\/\?\:@\-_=#])*"  # noqa: E501
 
         result = re.sub(regex_urls, " ", text)
 
@@ -90,7 +90,6 @@ class TextToSpeech:
 
         except Exception as e:
             logger.error(f"Error generating audio clip: {e}")
-            raise e
 
 
 tts = TextToSpeech()
