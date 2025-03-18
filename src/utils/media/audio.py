@@ -18,6 +18,10 @@ def generate_silence(duration: float, output_path: str) -> None:
         duration (int): Duration of silence in seconds.
         output_path (str): Path to save the silent MP
     """
+
+    # Create the output folder if it doesn't exist
+    create_file_folder(output_path)
+
     ffmpeg.input("anullsrc=r=44100:cl=stereo", f="lavfi").output(
         output_path,
         t=duration,
@@ -58,7 +62,7 @@ def concatenate_audio_files(
     create_file_folder(output_file)
 
     # Generate silence file
-    silence_path = Path(settings.TEMP_PATH) / "silence.mp3"
+    silence_path = str(Path(settings.TEMP_PATH) / "silence.mp3")
     generate_silence(silence_duration, silence_path)
 
     # Create a list of input files alternating between audio and silence

@@ -8,6 +8,8 @@ import yt_dlp
 from loguru import logger
 from pydantic import BaseModel, field_validator
 
+from src.utils.path import create_file_folder
+
 
 class MediaFile(BaseModel):
     title: str
@@ -51,13 +53,12 @@ class MediaFile(BaseModel):
         # Check root file path
         root_path = Path(self.path).parent
 
-        if not root_path.exists():
-            root_path.mkdir(parents=True, exist_ok=True)
-            logger.info(f"Creating the {root_path} directory")
+        # Create directory structure if it doesn't exist
+        create_file_folder(self.path)
 
         if Path(f"{root_path}/{self.file_name}").is_file():
             logger.info(
-                f"Background audio {self.file_name} already exists. Skipping download.",
+                f"Media file {self.file_name} already exists. Skipping download.",
             )
             return
 

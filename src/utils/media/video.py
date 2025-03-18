@@ -102,7 +102,7 @@ def concatenate_videos(
     try:
         # Step 1: Process each video by normalizing only the audio and copying the video stream
         for idx, path in enumerate(video_paths):
-            temp_output = Path(settings.TEMP_PATH) / f"temp_normalized_{idx}.mp4"
+            temp_output = str(Path(settings.TEMP_PATH) / f"temp_normalized_{idx}.mp4")
             stream = ffmpeg.input(path)
             # Leave video unchanged by copying it
             video_stream = stream.video
@@ -503,7 +503,7 @@ def overlay_videos(
 
 def add_captions(
     input_file: str,
-    output_path: str,
+    output_file: str,
     subtitle_path: str,
 ) -> None:
     """
@@ -516,21 +516,21 @@ def add_captions(
     """
 
     # check if output_path exists
-    if os.path.exists(output_path):
+    if os.path.exists(output_file):
         logger.info(
-            f"Output file {output_path} already exists, skipping video overlay.",
+            f"Output file {output_file} already exists, skipping video overlay.",
         )
         return
 
     try:
         # Create output directory if it doesn't exist
-        create_file_folder(output_path)
+        create_file_folder(output_file)
         video = ffmpeg.input(input_file)
         audio = video.audio
         ffmpeg.concat(video.filter("subtitles", subtitle_path), audio, v=1, a=1).output(
-            output_path,
+            output_file,
         ).run()
-        logger.info(f"Subtitle added successfully to video at {output_path}")
+        logger.info(f"Subtitle added successfully to video at {output_file}")
 
     except Exception as e:
         logger.error(
