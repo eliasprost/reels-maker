@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
 import random
+from pathlib import Path
 
 import ffmpeg
 from loguru import logger
 
 from src.config import settings
+from src.utils.path import create_file_folder
 
 
 def generate_silence(duration: float, output_path: str) -> None:
@@ -16,6 +18,10 @@ def generate_silence(duration: float, output_path: str) -> None:
         duration (int): Duration of silence in seconds.
         output_path (str): Path to save the silent MP
     """
+
+    # Create the output folder if it doesn't exist
+    create_file_folder(output_path)
+
     ffmpeg.input("anullsrc=r=44100:cl=stereo", f="lavfi").output(
         output_path,
         t=duration,
@@ -52,9 +58,11 @@ def concatenate_audio_files(
         logger.info(f"Audio file already exists at: {output_file}")
         return
 
-    silence_path = "silence.mp3"
+    # Create output folder if it doesn't exist
+    create_file_folder(output_file)
 
     # Generate silence file
+    silence_path = str(Path(settings.TEMP_PATH) / "silence.mp3")
     generate_silence(silence_duration, silence_path)
 
     # Create a list of input files alternating between audio and silence
@@ -96,10 +104,14 @@ def cut_audio(
         fade_duration (int): Duration of fade-in and fade-out effects in seconds. Put 0 to disable.
     """
 
+    # check if file exists
+    if os.path.exists(output_path):
+        logger.info(f"Audio file already exists at: {output_path}")
+        return
+
     try:
-        output_dir = os.path.dirname(output_path)
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        # Create output folder if it doesn't exist
+        create_file_folder(output_path)
 
         input_duration = int(get_audio_duration(input_path))
 
@@ -151,7 +163,10 @@ def cut_audio(
         )
 
         logger.info(
-            f"Audio cut between {start_time}s and {end_time}s with fade effects = {fade} at: {output_path}",
+            f"""
+            Audio cut between {start_time}s and {end_time}s with fade effects = {fade} at:
+            - {output_path}
+            """,
         )
 
     except ffmpeg.Error as e:

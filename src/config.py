@@ -38,10 +38,11 @@ class Settings(BaseSettings):
     - REDDIT_USER_PASSWORD: The password of the Reddit user.
     - SCREEN_HEIGHT: The height of the screen in pixels.
     - SCREEN_WIDTH: The width of the screen in pixels.
-    - PYTHONWARNINGS: The warnings to be ignored.
-    - TOKENIZERS_PARALLELISM: The parallelism of the tokenizers.
     - USE_GPU: Whether to use GPU for video processing.
     - PRESET: The preset for the video processing.
+    - PYTHONWARNINGS: The warnings to be ignored.
+    - TOKENIZERS_PARALLELISM: The parallelism of the tokenizers.
+    - TEMP_PATH: The temporary path for storing files.
     """
 
     # Main video settings
@@ -57,11 +58,14 @@ class Settings(BaseSettings):
     SCREEN_HEIGHT: int = 1920
     SCREEN_WIDTH: int = 1080
 
+    # Video processing
+    USE_GPU: bool = is_videotoolbox_available()
+    PRESET: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = "slow"
+
     # Others
     PYTHONWARNINGS: str = "ignore"
     TOKENIZERS_PARALLELISM: str = "true"
-    USE_GPU: bool = is_videotoolbox_available()
-    PRESET: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = "slow"
+    TEMP_PATH: str = ".temp"
 
     class Config:
         env_file = ".env"
