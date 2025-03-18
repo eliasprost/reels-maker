@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     # Others
     PYTHONWARNINGS: str = "ignore"
     TOKENIZERS_PARALLELISM: str = "true"
-    TEMP_PATH = ".temp"
+    TEMP_PATH: str = ".temp"
 
     class Config:
         env_file = ".env"
