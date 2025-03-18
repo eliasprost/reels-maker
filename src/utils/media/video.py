@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import random
+from pathlib import Path
 from typing import List, Literal
 
 import ffmpeg
@@ -8,6 +9,7 @@ from loguru import logger
 
 from src.config import settings
 from src.utils.media.audio import get_audio_duration
+from src.utils.path import create_file_folder
 
 
 def get_video_duration(file_path: str) -> float:
@@ -44,8 +46,8 @@ def create_image_videoclip(
         return
 
     try:
-        # Ensure the output directory exists
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        # Create the parent folder of the output path if it doesn't exist
+        create_file_folder(output_path)
 
         input_image = ffmpeg.input(image_path, loop=1, framerate=60)
         input_audio = ffmpeg.input(audio_path)
@@ -100,7 +102,7 @@ def concatenate_videos(
     try:
         # Step 1: Process each video by normalizing only the audio and copying the video stream
         for idx, path in enumerate(video_paths):
-            temp_output = f"temp_normalized_{idx}.mp4"
+            temp_output = Path(settings.TEMP_PATH) / f"temp_normalized_{idx}.mp4"
             stream = ffmpeg.input(path)
             # Leave video unchanged by copying it
             video_stream = stream.video
@@ -185,9 +187,7 @@ def cut_video(
 
     try:
         # Create output directory if it doesn't exist
-        output_dir = os.path.dirname(output_path)
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        create_file_folder(output_path)
 
         input_duration = int(get_audio_duration(input_path))
 
@@ -272,9 +272,8 @@ def resize_video(
         return
 
     try:
-        output_dir = os.path.dirname(output_path)
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        # Create output directory if it doesn't exist
+        create_file_folder(output_path)
 
         if zoom_crop:
             # Scale up to cover the entire target resolution, then crop to the exact size
@@ -342,9 +341,8 @@ def combine_video_with_audio(
         volume (float): Volume level for the audio (default is 1.0).
     """
     try:
-        output_dir = os.path.dirname(output_path)
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        # Create the output directory if it doesn't exist
+        create_file_folder(output_path)
 
         video_duration = get_video_duration(video_path)
         audio_duration = get_audio_duration(audio_path)
@@ -408,7 +406,6 @@ def overlay_videos(
     """
 
     # check if output_path exists
-
     if os.path.exists(output_path):
         logger.info(
             f"Output file {output_path} already exists, skipping video overlay.",
@@ -416,9 +413,8 @@ def overlay_videos(
         return
 
     try:
-        output_dir = os.path.dirname(output_path)
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        # Create output directory if it doesn't exist
+        create_file_folder(output_path)
 
         # Get background video resolution
         bg_probe = ffmpeg.probe(background_video)
@@ -507,7 +503,7 @@ def overlay_videos(
 
 def add_captions(
     input_file: str,
-    output_file: str,
+    output_path: str,
     subtitle_path: str,
 ) -> None:
     """
@@ -519,13 +515,22 @@ def add_captions(
         subtitle_path (str): The path of the subtitle file.
     """
 
+    # check if output_path exists
+    if os.path.exists(output_path):
+        logger.info(
+            f"Output file {output_path} already exists, skipping video overlay.",
+        )
+        return
+
     try:
+        # Create output directory if it doesn't exist
+        create_file_folder(output_path)
         video = ffmpeg.input(input_file)
         audio = video.audio
         ffmpeg.concat(video.filter("subtitles", subtitle_path), audio, v=1, a=1).output(
-            output_file,
+            output_path,
         ).run()
-        logger.info(f"Subtitle added successfully to video at {output_file}")
+        logger.info(f"Subtitle added successfully to video at {output_path}")
 
     except Exception as e:
         logger.error(
@@ -550,6 +555,8 @@ def extract_video_thumbnail(video_path: str, output_path: str, time: int = 1):
         return
 
     try:
+        # Create output directory if it doesn't exist
+        create_file_folder(output_path)
         (
             ffmpeg.input(video_path, ss=time)  # Seek to the given second
             .output(output_path, vframes=1)  # Extract 1 frame
