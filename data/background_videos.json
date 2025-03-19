@@ -1,19 +1,5 @@
 [
     {
-        "title": "motor-gta",
-        "url": "https://www.youtube.com/watch?v=vw5L4xCPy9Q",
-        "file_name": "bike-parkour-gta.mp4",
-        "author": "Achy Gaming",
-        "type": "background"
-    },
-    {
-        "title": "rocket-league",
-        "url": "https://www.youtube.com/watch?v=2X9QGY__0II",
-        "file_name": "rocket_league.mp4",
-        "author": "Orbital Gameplay",
-        "type": "background"
-    },
-    {
         "title": "minecraft",
         "url": "https://www.youtube.com/watch?v=n_Dv4JMiwK8",
         "file_name": "parkour.mp4",
@@ -35,13 +21,6 @@
         "type": "background"
     },
     {
-        "title": "csgo-surf",
-        "url": "https://www.youtube.com/watch?v=E-8JlyO59Io",
-        "file_name": "csgo-surf.mp4",
-        "author": "Aki",
-        "type": "background"
-    },
-    {
         "title": "cluster-truck",
         "url": "https://www.youtube.com/watch?v=uVKxtdMgJVU",
         "file_name": "cluster_truck.mp4",
@@ -49,24 +28,10 @@
         "type": "background"
     },
     {
-        "title": "multiversus",
-        "url": "https://www.youtube.com/watch?v=66oK1Mktz6g",
-        "file_name": "multiversus.mp4",
-        "author": "MKIceAndFire",
-        "type": "background"
-    },
-    {
         "title": "fall-guys",
         "url": "https://www.youtube.com/watch?v=oGSsgACIc6Q",
         "file_name": "fall-guys.mp4",
         "author": "Throneful",
-        "type": "background"
-    },
-    {
-        "title": "steep",
-        "url": "https://www.youtube.com/watch?v=EnGiQrWBrko",
-        "file_name": "steep.mp4",
-        "author": "joel",
         "type": "background"
     }
 ]

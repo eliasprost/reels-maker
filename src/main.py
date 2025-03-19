@@ -15,7 +15,6 @@ from src.utils.media.audio import concatenate_audio_files, cut_audio
 from src.utils.media.video import (
     add_captions,
     combine_video_with_audio,
-    concatenate_videos,
     create_image_videoclip,
     cut_video,
     extract_video_thumbnail,
@@ -50,7 +49,6 @@ def main():
     N_COMMENTS = (
         args.n
     )  # TODO: we need to change to use the video duration from settings.
-    REDDIT_VIDEO_PATH = "assets/posts/{post_id}/video/reddit_video.mp4"
     BACKGROUND_VIDEO_PATH = "assets/posts/{post_id}/video/background_video_{suffix}.mp4"
     BACKGROUND_AUDIO_PATH = "assets/posts/{post_id}/audio/background_audio.mp3"
     BACKGROUND_AUDIO_VOLUME = (
@@ -188,19 +186,16 @@ def main():
     )
 
     # MAIN VIDEO
-    # Reddit video
-    # Concatenate all videos
-    all_videos = (
+    # Reddit videos
+    reddit_videos = (
         [post.video_path]
         + [comment.video_path for comment in top_comments]
         + [f"./assets/others/outros/outro_{language}_{speaker.id}.mp4"]
     )
-    concatenate_videos(all_videos, REDDIT_VIDEO_PATH.format(post_id=post.post_id))
+
+    video_duration = sum(get_video_duration(video) for video in reddit_videos)
 
     # Background video
-    # Get reddit reference video duration
-    video_duration = get_video_duration(REDDIT_VIDEO_PATH.format(post_id=post.post_id))
-
     # Get and download a random background videos and audio
     audios = [
         MediaFile(**audio) for audio in json.load(open("./data/background_audios.json"))
@@ -264,9 +259,8 @@ def main():
             post_id=post.post_id,
             suffix="finished",
         ),
-        overlay_video=REDDIT_VIDEO_PATH.format(post_id=post.post_id),
+        overlay_videos=reddit_videos,
         output_path=REEL_PATH.format(post_id=post.post_id, suffix="raw"),
-        zoom=1.85,  # TODO: we need to change this to use the video duration from settings.
     )
 
     # Add subtitles to the video
