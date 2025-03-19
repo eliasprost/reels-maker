@@ -385,6 +385,7 @@ def overlay_videos(
     zoom: float = 1.0,
     preset: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = settings.PRESET,
     margin: int = 50,  # Margin in pixels on each side
+    normalize_audio: bool = True,  # Enable audio normalization
 ) -> None:
     """
     Overlays multiple videos onto a background video without concatenating them,
@@ -402,7 +403,8 @@ def overlay_videos(
         preset (str, optional): The encoding preset for the output video.
             Default is taken from settings.PRESET.
         margin (int, optional): Margin in pixels between the overlay videos and the
-            background edges. Default is 30 pixels on each side.
+            background edges. Default is 50 pixels on each side.
+        normalize_audio (bool, optional): Whether to normalize the audio of overlay videos.
     """
 
     # Check if the video already exists
@@ -411,7 +413,7 @@ def overlay_videos(
         return
 
     # Create the parent folder of the output path if it doesn't exist
-    create_file_folder(output_path)
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     # Load background video and extract its dimensions and FPS
     bg_clip = VideoFileClip(background_video)
@@ -437,7 +439,7 @@ def overlay_videos(
         alignment: str,
         new_width: int,
         new_height: int,
-    ) -> (int, int):
+    ) -> tuple[int, int]:
         if alignment == "center":
             x = margin + (available_width - new_width) // 2
             y = margin + (available_height - new_height) // 2
@@ -458,12 +460,13 @@ def overlay_videos(
             y = margin + (available_height - new_height) // 2
         return (x, y)
 
-    # Process each overlay video individually, set its position and start time
+    # Process each overlay video individually
     overlay_clips = []
     current_time = 0  # Start time offset for sequential playback
-    total_overlay_duration = 0  # Variable to keep track of total overlay duration
+    total_overlay_duration = 0  # Keep track of total overlay duration
 
     for video_path in overlay_videos:
+
         try:
             clip = VideoFileClip(video_path)
             clip_fps = clip.fps if clip.fps else bg_fps
@@ -479,8 +482,16 @@ def overlay_videos(
             # Compute the (x, y) position within the available area
             pos = _compute_position(mapped_position, new_width, new_height)
 
+            # Resize video
             resized_clip = clip.resize((new_width, new_height)).set_fps(clip_fps)
-            # Set the start time for sequential playback and preserve the computed position
+
+            # Normalize audio volume (optional)
+            if normalize_audio and resized_clip.audio:
+                resized_clip = resized_clip.volumex(
+                    1.2,
+                )  # Adjust to balance audio levels
+
+            # Set the start time for sequential playback
             resized_clip = resized_clip.set_start(current_time).set_position(pos)
             current_time += resized_clip.duration
             total_overlay_duration += resized_clip.duration
@@ -493,15 +504,14 @@ def overlay_videos(
     if not overlay_clips:
         raise ValueError("No valid overlay videos provided.")
 
-    # Composite the background with the overlay clips (each with its own start time and position)
-    composite = CompositeVideoClip([bg_clip] + overlay_clips, size=bg_clip.size)
-    # Set the composite duration to the total overlay duration
-    composite.duration = total_overlay_duration
-
     # Trim the background video to match the total overlay duration
     bg_clip = bg_clip.subclip(0, total_overlay_duration)
 
-    # Write the final video with the desired codecs and preset
+    # Composite the background with the overlay clips
+    composite = CompositeVideoClip([bg_clip] + overlay_clips, size=bg_clip.size)
+    composite.duration = total_overlay_duration  # Ensure correct duration
+
+    # Write the final video
     composite.write_videofile(
         output_path,
         fps=bg_fps,
@@ -516,39 +526,6 @@ def overlay_videos(
         clip.close()
 
     logger.info(f"Video with overlays created successfully: {output_path}")
-
-
-def extract_video_thumbnail(video_path: str, output_path: str, time: int = 1):
-    """
-    Extracts a thumbnail from a video at a specified time using ffmpeg-python.
-
-    Args:
-        video_path (str): Path to the input video file.
-        output_path (str): Path to save the extracted PNG thumbnail.
-        time (int, optional): Time (in seconds) to extract the frame. Defaults to 1s.
-    """
-
-    # Check if thumbnail exists
-    if os.path.exists(output_path):
-        logger.info(f"Thumbnail already exists at {output_path}. Skipping extraction.")
-        return
-
-    try:
-        # Create output directory if it doesn't exist
-        create_file_folder(output_path)
-        (
-            ffmpeg.input(video_path, ss=time)  # Seek to the given second
-            .output(output_path, vframes=1)  # Extract 1 frame
-            .run(
-                overwrite_output=True,
-                capture_stderr=True,
-            )  # Capture errors for debugging
-        )
-        logger.info(f"Video thumbnail extracted successfully at {output_path}.")
-
-    except ffmpeg.Error as e:
-        logger.error(f"Error extracting video thumbnail: {e.stderr.decode()}")
-        raise e
 
 
 def add_captions(
@@ -586,4 +563,37 @@ def add_captions(
         logger.error(
             f"An error occurred while trying to embed subtitles in file {input_file}. Error: {e}",
         )
+        raise e
+
+
+def extract_video_thumbnail(video_path: str, output_path: str, time: int = 1):
+    """
+    Extracts a thumbnail from a video at a specified time using ffmpeg-python.
+
+    Args:
+        video_path (str): Path to the input video file.
+        output_path (str): Path to save the extracted PNG thumbnail.
+        time (int, optional): Time (in seconds) to extract the frame. Defaults to 1s.
+    """
+
+    # Check if thumbnail exists
+    if os.path.exists(output_path):
+        logger.info(f"Thumbnail already exists at {output_path}. Skipping extraction.")
+        return
+
+    try:
+        # Create output directory if it doesn't exist
+        create_file_folder(output_path)
+        (
+            ffmpeg.input(video_path, ss=time)  # Seek to the given second
+            .output(output_path, vframes=1)  # Extract 1 frame
+            .run(
+                overwrite_output=True,
+                capture_stderr=True,
+            )  # Capture errors for debugging
+        )
+        logger.info(f"Video thumbnail extracted successfully at {output_path}.")
+
+    except ffmpeg.Error as e:
+        logger.error(f"Error extracting video thumbnail: {e.stderr.decode()}")
         raise e
