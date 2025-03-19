@@ -6,6 +6,7 @@ from typing import List, Literal
 
 import ffmpeg
 from loguru import logger
+from moviepy.editor import CompositeVideoClip, VideoFileClip
 
 from src.config import settings
 from src.utils.media.audio import get_audio_duration
@@ -378,165 +379,143 @@ def combine_video_with_audio(
 
 def overlay_videos(
     background_video: str,
-    overlay_video: str,
+    overlay_videos: List[str],
     output_path: str,
-    preset: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = settings.PRESET,
-    position: str = "center",
+    position: Literal["center", "left", "right", "top", "bottom"] = "center",
     zoom: float = 1.0,
+    preset: str = settings.PRESET,
+    margin: int = 50,  # Margin in pixels on each side
 ) -> None:
     """
-    Overlay one video onto another while maintaining original audio levels and background
-    resolution.
-
-    The overlay video is scaled to fit inside the background (keeping its aspect ratio), with an
-    optional zoom factor. The audio streams from both videos are processed (with aresample for the
-    background and volume boost for the overlay) and then mixed.
+    Overlays multiple videos onto a background video without concatenating them,
+    by placing each overlay video sequentially in time and positioning them within
+    an area that respects a specified margin from the background video’s edges.
 
     Args:
-        background_video (str): The main background video
-            (resolution & aspect ratio will be taken from here).
-        overlay_video (str): The video that will be placed on top.
-        output_path (str): Path to the output video file.
-        preset (literal["veryslow", "slow", "medium", "fast", "veryfast"]): Encoding preset.
-            Default is "slow".
-        position (str): Position of the overlay video ('up', 'down', 'center', 'left', 'right').
-            Default is 'center'.
-        zoom (float): Scale factor for the overlay video
-            (1.0 = default size, >1.0 = larger, <1.0 = smaller).
+        background_video (str): Path to the background video file.
+        overlay_videos (List[str]): List of paths to overlay video files.
+        output_path (str): Path to save the output video file.
+        position (str, optional): Desired alignment for the overlay videos within the available
+            area. Accepted: "center", "left", "right", "top", and "bottom". Default is "center".
+        zoom (float, optional): A zoom factor for resizing the overlay videos. A value of 1.0 means
+            the overlay is scaled to the maximum size that fits within the available area.
+        preset (str, optional): The encoding preset for the output video.
+            Default is taken from settings.PRESET.
+        margin (int, optional): Margin in pixels between the overlay videos and the
+            background edges. Default is 30 pixels on each side.
     """
 
-    # check if output_path exists
+    # Check if the video already exists
     if os.path.exists(output_path):
-        logger.info(
-            f"Output file {output_path} already exists, skipping video overlay.",
-        )
+        logger.info(f"Video already exists at: {output_path}")
         return
 
-    try:
-        # Create output directory if it doesn't exist
-        create_file_folder(output_path)
+    # Create the parent folder of the output path if it doesn't exist
+    create_file_folder(output_path)
 
-        # Get background video resolution
-        bg_probe = ffmpeg.probe(background_video)
-        bg_width = int(bg_probe["streams"][0]["width"])
-        bg_height = int(bg_probe["streams"][0]["height"])
+    # Load background video and extract its dimensions and FPS
+    bg_clip = VideoFileClip(background_video)
+    bg_fps = bg_clip.fps if bg_clip.fps else 30
+    bg_width, bg_height = bg_clip.size
 
-        # Define positioning expressions
-        positions = {
-            "center": ("(main_w-overlay_w)/2", "(main_h-overlay_h)/2"),
-            "up": ("(main_w-overlay_w)/2", "0"),
-            "down": ("(main_w-overlay_w)/2", "main_h-overlay_h"),
-            "left": ("0", "(main_h-overlay_h)/2"),
-            "right": ("main_w-overlay_w", "(main_h-overlay_h)/2"),
-        }
-        x, y = positions.get(position, positions["center"])
+    # Define the available area (background minus margins)
+    available_width = bg_width - 2 * margin
+    available_height = bg_height - 2 * margin
 
-        # Compute scaled size with zoom factor
-        max_width = (
-            bg_width / 2
-        ) * zoom  # Default overlay width: half of background, adjusted by zoom
-        max_height = (
-            bg_height / 2
-        ) * zoom  # Default overlay height: half of background, adjusted by zoom
-        max_width = min(max_width, bg_width)
-        max_height = min(max_height, bg_height)
+    # Map the provided position to a standardized alignment value
+    pos_map = {
+        "up": "top",
+        "down": "bottom",
+        "center": "center",
+        "left": "left",
+        "right": "right",
+    }
+    mapped_position = pos_map.get(position.lower(), "center")
 
-        # Input streams
-        bg = ffmpeg.input(background_video)
-        ov = ffmpeg.input(overlay_video)
+    # Helper function to compute the (x, y) position within the available area
+    def _compute_position(
+        alignment: str,
+        new_width: int,
+        new_height: int,
+    ) -> (int, int):
+        if alignment == "center":
+            x = margin + (available_width - new_width) // 2
+            y = margin + (available_height - new_height) // 2
+        elif alignment == "left":
+            x = margin
+            y = margin + (available_height - new_height) // 2
+        elif alignment == "right":
+            x = bg_width - margin - new_width
+            y = margin + (available_height - new_height) // 2
+        elif alignment == "top":
+            x = margin + (available_width - new_width) // 2
+            y = margin
+        elif alignment == "bottom":
+            x = margin + (available_width - new_width) // 2
+            y = bg_height - margin - new_height
+        else:
+            x = margin + (available_width - new_width) // 2
+            y = margin + (available_height - new_height) // 2
+        return (x, y)
 
-        # Scale overlay video while preserving aspect ratio
-        # Get background frame rate from metadata
-        bg_fps = bg_probe["streams"][0]["r_frame_rate"]
+    # Process each overlay video individually, set its position and start time
+    overlay_clips = []
+    current_time = 0  # Start time offset for sequential playback
+    total_overlay_duration = 0  # Variable to keep track of total overlay duration
 
-        ov_scaled = ov.video.filter("fps", fps=bg_fps).filter(
-            "scale",
-            f"min(iw,{max_width})",
-            f"min(ih,{max_height})",
-            force_original_aspect_ratio="decrease",
-        )
+    for video_path in overlay_videos:
+        try:
+            clip = VideoFileClip(video_path)
+            clip_fps = clip.fps if clip.fps else bg_fps
+            clip_width, clip_height = clip.size
 
-        # Overlay the scaled video on top of the background video
-        video_out = ffmpeg.overlay(bg.video, ov_scaled, x=x, y=y)
-        bg_audio_fixed = bg.audio.filter(
-            "volume",
-            1.0,
-        )
-        ov_audio_fixed = ov.audio.filter(
-            "volume",
-            1.25,
-        )
+            # Compute scale factor so the clip fits within the available area (then apply zoom)
+            scale_factor = (
+                min(available_width / clip_width, available_height / clip_height) * zoom
+            )
+            new_width = int(clip_width * scale_factor)
+            new_height = int(clip_height * scale_factor)
 
-        # Mix the processed audio streams
-        audio_out = ffmpeg.filter(
-            [bg_audio_fixed, ov_audio_fixed],
-            "amix",
-            inputs=2,
-            dropout_transition=0.2,
-            duration="longest",
-            normalize=False,
-        )
+            # Compute the (x, y) position within the available area
+            pos = _compute_position(mapped_position, new_width, new_height)
 
-        output_args = {
-            "vcodec": "h264_videotoolbox" if settings.USE_GPU else "libx264",
-            "acodec": "aac",
-            "pix_fmt": "yuv420p",
-            "preset": preset,
-            "crf": 18,
-            "b:v": "5000k" if settings.USE_GPU else "3000k",
-            "b:a": "256k",
-        }
+            resized_clip = clip.resize((new_width, new_height)).set_fps(clip_fps)
+            # Set the start time for sequential playback and preserve the computed position
+            resized_clip = resized_clip.set_start(current_time).set_position(pos)
+            current_time += resized_clip.duration
+            total_overlay_duration += resized_clip.duration
 
-        # Combine video and audio outputs and set output parameters.
-        out = ffmpeg.output(video_out, audio_out, output_path, **output_args)
-        out = out.overwrite_output()
-        out.run()
+            overlay_clips.append(resized_clip)
 
-        logger.info(
-            f"Videos combined successfully with overlay at {position}, zoom={zoom}: {output_path}",
-        )
+        except Exception as e:
+            logger.error(f"Error processing {video_path}: {e}")
 
-    except ffmpeg.Error as e:
-        logger.error(f"ffmpeg error: {e.stderr.decode('utf8')}")
-        raise e
+    if not overlay_clips:
+        raise ValueError("No valid overlay videos provided.")
 
+    # Composite the background with the overlay clips (each with its own start time and position)
+    composite = CompositeVideoClip([bg_clip] + overlay_clips, size=bg_clip.size)
+    # Set the composite duration to the total overlay duration
+    composite.duration = total_overlay_duration
 
-def add_captions(
-    input_file: str,
-    output_file: str,
-    subtitle_path: str,
-) -> None:
-    """
-    Incorporate a ASS/SRT subtitle file into the input video.
+    # Trim the background video to match the total overlay duration
+    bg_clip = bg_clip.subclip(0, total_overlay_duration)
 
-    Args:
-        input_file (str): The path of the input video.
-        output_file (str): The path where the generated subtitle will be saved.
-        subtitle_path (str): The path of the subtitle file.
-    """
+    # Write the final video with the desired codecs and preset
+    composite.write_videofile(
+        output_path,
+        fps=bg_fps,
+        codec="h264_videotoolbox" if settings.USE_GPU else "libx264",
+        audio_codec="aac",
+        preset=preset,
+    )
 
-    # check if output_path exists
-    if os.path.exists(output_file):
-        logger.info(
-            f"Output file {output_file} already exists, skipping video overlay.",
-        )
-        return
+    # Cleanup resources
+    bg_clip.close()
+    for clip in overlay_clips:
+        clip.close()
 
-    try:
-        # Create output directory if it doesn't exist
-        create_file_folder(output_file)
-        video = ffmpeg.input(input_file)
-        audio = video.audio
-        ffmpeg.concat(video.filter("subtitles", subtitle_path), audio, v=1, a=1).output(
-            output_file,
-        ).run()
-        logger.info(f"Subtitle added successfully to video at {output_file}")
-
-    except Exception as e:
-        logger.error(
-            f"An error occurred while trying to embed subtitles in file {input_file}. Error: {e}",
-        )
-        raise e
+    logger.info(f"Video with overlays created successfully: {output_path}")
 
 
 def extract_video_thumbnail(video_path: str, output_path: str, time: int = 1):
