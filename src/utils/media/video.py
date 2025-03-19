@@ -383,7 +383,7 @@ def overlay_videos(
     output_path: str,
     position: Literal["center", "left", "right", "top", "bottom"] = "center",
     zoom: float = 1.0,
-    preset: str = settings.PRESET,
+    preset: Literal["veryslow", "slow", "medium", "fast", "veryfast"] = settings.PRESET,
     margin: int = 50,  # Margin in pixels on each side
 ) -> None:
     """
