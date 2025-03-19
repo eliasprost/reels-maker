@@ -549,3 +549,41 @@ def extract_video_thumbnail(video_path: str, output_path: str, time: int = 1):
     except ffmpeg.Error as e:
         logger.error(f"Error extracting video thumbnail: {e.stderr.decode()}")
         raise e
+
+
+def add_captions(
+    input_file: str,
+    output_file: str,
+    subtitle_path: str,
+) -> None:
+    """
+    Incorporate a ASS/SRT subtitle file into the input video.
+
+    Args:
+        input_file (str): The path of the input video.
+        output_file (str): The path where the generated subtitle will be saved.
+        subtitle_path (str): The path of the subtitle file.
+    """
+
+    # check if output_path exists
+    if os.path.exists(output_file):
+        logger.info(
+            f"Output file {output_file} already exists, skipping video overlay.",
+        )
+        return
+
+    try:
+        # Create output directory if it doesn't exist
+        create_file_folder(output_file)
+        video = ffmpeg.input(input_file)
+        audio = video.audio
+        ffmpeg.concat(video.filter("subtitles", subtitle_path), audio, v=1, a=1).output(
+            output_file,
+        ).run()
+        logger.info(f"Subtitle added successfully to video at {output_file}")
+
+    except Exception as e:
+        logger.error(
+            f"An error occurred while trying to embed subtitles in file {input_file}. Error: {e}",
+        )
+        raise e
