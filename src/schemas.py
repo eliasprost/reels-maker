@@ -4,9 +4,10 @@ import os
 from pathlib import Path
 from typing import ClassVar, List, Literal, Optional
 
+import langid
 import yt_dlp
 from loguru import logger
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 from src.utils.path import create_file_folder
 
@@ -131,6 +132,11 @@ class RedditComment(BaseModel):
 
 
 class RedditPost(BaseModel):
+
+    supported_languages: ClassVar[List[str]] = [
+        lang["lang_code"] for lang in json.load(open("./data/languages.json"))
+    ]
+
     post_id: str
     title: str
     body: str
@@ -139,7 +145,8 @@ class RedditPost(BaseModel):
     author: str
     score: int
     permalink: str
-    tag: Optional[str]
+    tag: Optional[str] = None
+    language: Optional[str] = None
 
     @property
     def lenght(self) -> int:
@@ -170,6 +177,24 @@ class RedditPost(BaseModel):
     @property
     def url(self) -> str:
         return f"https://www.reddit.com{self.permalink}"
+
+    @model_validator(mode="after")
+    @classmethod
+    def validate_language(cls, model: "RedditPost") -> "RedditPost":
+        """
+        Validate that the language is in the list of supported languages.
+        """
+
+        model.language = langid.classify(model.title + " " + model.body)[0]
+
+        if model.language not in cls.supported_languages:
+            raise ValueError(
+                f"""
+                Invalid language, please use one of the following:
+                {', '.join(cls.supported_languages)}
+                """,
+            )
+        return model
 
 
 class Speaker(BaseModel):
