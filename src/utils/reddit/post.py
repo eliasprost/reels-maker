@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
-import sys
 
 import praw
 
 from src.schemas import RedditComment, RedditPost
-
-sys.path.append(".")
-sys.path.append("..")
 
 
 def parse_comment_permalink(comment: praw.models.Comment, post_id: str) -> str:
