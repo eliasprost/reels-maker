@@ -109,7 +109,8 @@ If you want to add more background media, you can do so by adding YouTube links 
 ## Makefile available commands
 - Run `make install-dev` to install the project dev dependencies.
 - Run `make download` to download all the background media in one go.
-- Run `make start` to start the Streamlit app.
+- Run `make start` to run the script.
+- Run `make app` to start the Streamlit app.
 
 ## Contributing
 Contributions are welcome!  Please submit pull requests with your proposed changes.
