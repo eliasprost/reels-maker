@@ -28,15 +28,17 @@ def generate_silence(duration: float, output_path: str) -> None:
     ).run(overwrite_output=True)
 
 
-def get_audio_duration(file_path: str) -> float:
+def get_audio_duration(file_path: str, round_value: bool = True) -> float:
     """
     Get the duration (in seconds) of an MP3 file using ffmpeg.
 
     Args:
         file_path (str): Path to the MP3 file.
+        round_value (bool): Whether to round the duration to the nearest second.
     """
     probe = ffmpeg.probe(file_path)
-    return float(probe["format"]["duration"])
+    duration = float(probe["format"]["duration"])
+    return round(duration, 2) if round_value else duration
 
 
 def concatenate_audio_files(
