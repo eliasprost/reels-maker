@@ -111,7 +111,7 @@ class RedditComment(BaseModel):
     permalink: str
 
     @property
-    def lenght(self) -> int:
+    def length(self) -> int:
         return len(self.body.split())
 
     @property
@@ -149,7 +149,7 @@ class RedditPost(BaseModel):
     language: Optional[str] = None
 
     @property
-    def lenght(self) -> int:
+    def length(self) -> int:
         return len(self.title.split()) + len(self.body.split())
 
     @property
@@ -190,8 +190,8 @@ class RedditPost(BaseModel):
         if model.language not in cls.supported_languages:
             raise ValueError(
                 f"""
-                Invalid language, please use one of the following:
-                {', '.join(cls.supported_languages)}
+                The language of the post ({model.language}) is not supported, please provide a
+                post in one of the following languages: {', '.join(cls.supported_languages)}
                 """,
             )
         return model
