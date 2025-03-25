@@ -7,11 +7,13 @@ import time
 from typing import List
 
 import spacy
+import streamlit as st
 import torch
 from loguru import logger
 from TTS.api import TTS
 
-from src.utils.media.audio import concatenate_audio_files
+from src.utils.media.audio import concatenate_audio_files, generate_silence
+from src.utils.path import create_file_folder
 
 
 class TextToSpeech:
@@ -144,7 +146,7 @@ class TextToSpeech:
         """
 
         if not output_path:
-            logger.info(f"Text is empty: {text}. Skipping generation.")
+            logger.info(f"output_path is invalid: {output_path}. Skipping generation.")
             return
 
         if os.path.exists(output_path):
@@ -153,14 +155,16 @@ class TextToSpeech:
             )
             return
 
+        # Create the folder if it doesn't exist
+        create_file_folder(output_path)
+
         folder_path = os.path.dirname(output_path)
         if not os.path.exists(folder_path):
             os.makedirs(folder_path, exist_ok=True)
             logger.info(f"Folder not found. Created folder: {folder_path}")
 
         try:
-
-            if len(text) <= 200:
+            if text and len(text) <= 200:
                 sanitized_text = self.sanitize_text(text)
                 start = time.time()
                 self.model.tts_to_file(
@@ -176,11 +180,14 @@ class TextToSpeech:
                     f"Audio clip generated: {output_path} in {end - start:.2f} seconds",
                 )
 
-            else:
+            elif text and len(text) > 200:
                 processed_files = []
 
                 try:
                     splits = self.split_text(text, language)
+
+                    # Clean empty text from splits
+                    splits = [part for part in splits if part.strip() != ""]
 
                     # Get the file extension to mantain in the splits output path
                     _, extension = os.path.splitext(output_path)
@@ -190,6 +197,7 @@ class TextToSpeech:
                         logger.info(f"Folder not found. Created folder: {folder_path}")
 
                     for idx, text in enumerate(splits):
+
                         sanitized_text = self.sanitize_text(text)
                         start = time.time()
                         self.model.tts_to_file(
@@ -219,9 +227,19 @@ class TextToSpeech:
                     for file in processed_files:
                         os.remove(file)
 
+            else:
+                logger.warning("Text is empty. Generating silence.")
+                generate_silence(duration=1, output_path=output_path)
+
         except Exception as e:
-            raise (e)
+            logger.error(f"Error generating audio clip with the following text: {text}")
             logger.error(f"Error generating audio clip: {e}")
+            raise (e)
 
 
-tts = TextToSpeech()
+@st.cache_resource
+def get_text_to_speech():
+    """
+    Create and cache a SpeechToText instance.
+    """
+    return TextToSpeech()
