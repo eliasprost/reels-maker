@@ -39,11 +39,12 @@ def parse_reddit_post(thread: praw.models.Submission) -> RedditPost:
                 comment_id=comment.id,
                 post_id=thread.id,
                 body=comment.body,
-                author=comment.author.name if comment.author else "deleted",
+                author=comment.author.name,
                 score=comment.score,
                 permalink=parse_comment_permalink(comment, thread.id),
             )
             for comment in thread.comments
+            if comment.body != "[deleted]" and comment.author
         ],
         num_comments=thread.num_comments,
         tag=thread.link_flair_text,
