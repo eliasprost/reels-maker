@@ -6,7 +6,7 @@ from typing import List, Literal
 
 import ffmpeg
 from loguru import logger
-from moviepy.editor import CompositeVideoClip, VideoFileClip
+from moviepy.editor import CompositeVideoClip, VideoFileClip, concatenate_videoclips
 
 from src.config import settings
 from src.utils.media.audio import get_audio_duration
@@ -341,6 +341,12 @@ def combine_video_with_audio(
         output_path (str): Path to the output video file.
         volume (float): Volume level for the audio (default is 1.0).
     """
+
+    # check if video exist
+    if os.path.exists(output_path):
+        logger.info(f"Video already exists: {output_path}")
+        return
+
     try:
         # Create the output directory if it doesn't exist
         create_file_folder(output_path)
@@ -390,7 +396,7 @@ def overlay_videos(
     """
     Overlays multiple videos onto a background video without concatenating them,
     by placing each overlay video sequentially in time and positioning them within
-    an area that respects a specified margin from the background video’s edges.
+    an area that respects a specified margin from the background video's edges.
 
     Args:
         background_video (str): Path to the background video file.
@@ -415,8 +421,43 @@ def overlay_videos(
     # Create the parent folder of the output path if it doesn't exist
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-    # Load background video and extract its dimensions and FPS
+    # First pass: calculate total overlay duration
+    total_overlay_duration = 0
+    overlay_durations = []
+
+    for video_path in overlay_videos:
+        try:
+            clip = VideoFileClip(video_path)
+            overlay_durations.append(clip.duration)
+            total_overlay_duration += clip.duration
+            clip.close()
+        except Exception as e:
+            logger.error(f"Error calculating duration for {video_path}: {e}")
+            overlay_durations.append(0)
+
+    if total_overlay_duration <= 0:
+        raise ValueError("No valid overlay videos provided or total duration is zero.")
+
+    # Load background video and ensure it's long enough
     bg_clip = VideoFileClip(background_video)
+    bg_duration = bg_clip.duration
+
+    if bg_duration < total_overlay_duration:
+        logger.warning(
+            f"""
+            Background video ({bg_duration}s) is shorter than total overlay
+            duration ({total_overlay_duration}s). Looping background.
+            """,
+        )
+
+        # Calculate how many loops we need
+        loops_needed = int(total_overlay_duration // bg_duration) + 1
+        bg_clips = [bg_clip] * loops_needed
+        bg_clip = concatenate_videoclips(bg_clips)
+
+        # Trim to exact needed duration
+        bg_clip = bg_clip.subclip(0, total_overlay_duration)
+
     bg_fps = bg_clip.fps if bg_clip.fps else 30
     bg_width, bg_height = bg_clip.size
 
@@ -460,13 +501,11 @@ def overlay_videos(
             y = margin + (available_height - new_height) // 2
         return (x, y)
 
-    # Process each overlay video individually
+    # Process each overlay video
     overlay_clips = []
     current_time = 0  # Start time offset for sequential playback
-    total_overlay_duration = 0  # Keep track of total overlay duration
 
-    for video_path in overlay_videos:
-
+    for i, video_path in enumerate(overlay_videos):
         try:
             clip = VideoFileClip(video_path)
             clip_fps = clip.fps if clip.fps else bg_fps
@@ -493,18 +532,18 @@ def overlay_videos(
 
             # Set the start time for sequential playback
             resized_clip = resized_clip.set_start(current_time).set_position(pos)
-            current_time += resized_clip.duration
-            total_overlay_duration += resized_clip.duration
+            current_time += overlay_durations[i]  # Use pre-calculated duration
 
             overlay_clips.append(resized_clip)
 
         except Exception as e:
             logger.error(f"Error processing {video_path}: {e}")
+            continue
 
     if not overlay_clips:
-        raise ValueError("No valid overlay videos provided.")
+        raise ValueError("No valid overlay videos could be processed.")
 
-    # Trim the background video to match the total overlay duration
+    # Trim the background video to exactly match the total overlay duration
     bg_clip = bg_clip.subclip(0, total_overlay_duration)
 
     # Composite the background with the overlay clips
@@ -518,6 +557,8 @@ def overlay_videos(
         codec="h264_videotoolbox" if settings.USE_GPU else "libx264",
         audio_codec="aac",
         preset=preset,
+        threads=4,  # Add threads parameter for better performance
+        ffmpeg_params=["-movflags", "+faststart"],  # For better streaming
     )
 
     # Cleanup resources
