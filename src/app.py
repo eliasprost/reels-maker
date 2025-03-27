@@ -4,7 +4,6 @@ import json
 import random
 import re
 import subprocess
-import sys
 
 import pandas as pd
 import praw
@@ -12,8 +11,8 @@ import streamlit as st
 
 from config import settings
 from schemas import MediaFile, Speaker
-from src.utils.media.audio import concatenate_audio_files, cut_audio, get_audio_duration
-from src.utils.media.video import (
+from utils.media.audio import concatenate_audio_files, cut_audio, get_audio_duration
+from utils.media.video import (
     add_captions,
     combine_video_with_audio,
     create_image_videoclip,
@@ -23,14 +22,10 @@ from src.utils.media.video import (
     overlay_videos,
     resize_video,
 )
-from src.utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
-from src.utils.stt import get_speech_to_text
-from src.utils.tts import get_text_to_speech
 from utils.reddit.post import parse_reddit_post
-
-sys.path.append(".")
-sys.path.append("..")
-
+from utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
+from utils.stt import get_speech_to_text
+from utils.tts import get_text_to_speech
 
 # Initialize session state
 if "selected_video" not in st.session_state:

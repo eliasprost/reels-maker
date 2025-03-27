@@ -12,8 +12,8 @@ import torch
 from loguru import logger
 from TTS.api import TTS
 
-from src.utils.media.audio import concatenate_audio_files, generate_silence
-from src.utils.path import create_file_folder
+from utils.media.audio import concatenate_audio_files, generate_silence
+from utils.path import create_file_folder
 
 
 class TextToSpeech:

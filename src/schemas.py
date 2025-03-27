@@ -9,7 +9,7 @@ import yt_dlp
 from loguru import logger
 from pydantic import BaseModel, field_validator, model_validator
 
-from src.utils.path import create_file_folder
+from utils.path import create_file_folder
 
 
 class MediaFile(BaseModel):
