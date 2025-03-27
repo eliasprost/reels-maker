@@ -7,8 +7,8 @@ from loguru import logger
 from PIL import Image
 from playwright.async_api import Browser, BrowserContext, async_playwright
 
-from src.config import settings
-from src.schemas import RedditComment, RedditPost
+from config import settings
+from schemas import RedditComment, RedditPost
 
 
 async def login_reddit(context: BrowserContext, timeout: int = 5000) -> BrowserContext:

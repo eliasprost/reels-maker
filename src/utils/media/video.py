@@ -8,9 +8,9 @@ import ffmpeg
 from loguru import logger
 from moviepy.editor import CompositeVideoClip, VideoFileClip, concatenate_videoclips
 
-from src.config import settings
-from src.utils.media.audio import get_audio_duration
-from src.utils.path import create_file_folder
+from config import settings
+from utils.media.audio import get_audio_duration
+from utils.path import create_file_folder
 
 
 def get_video_duration(file_path: str) -> float:
