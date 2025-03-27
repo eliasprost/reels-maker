@@ -3,9 +3,12 @@ import os
 from typing import Any, Dict
 
 import pysubs2
+import streamlit as st
 import whisper
 from loguru import logger
 from whisper.utils import get_writer
+
+from src.utils.path import create_file_folder
 
 
 class SpeechToText:
@@ -56,9 +59,7 @@ class SpeechToText:
         """
 
         # Check if exists
-        if not os.path.exists(output_directory):
-            os.makedirs(output_directory)
-            logger.info(f"Directory did not exist and was created: {output_directory}")
+        create_file_folder(output_directory)
 
         # replace extension with .srt
         srt_filename = os.path.splitext(os.path.basename(input_file))[0] + ".srt"
@@ -132,4 +133,9 @@ class SpeechToText:
             logger.info(f"SRT file was removed from your disk:{input_file}")
 
 
-stt = SpeechToText()
+@st.cache_resource
+def get_speech_to_text():
+    """
+    Create and cache a SpeechToText instance.
+    """
+    return SpeechToText()
