@@ -22,7 +22,7 @@ from utils.media.video import (
     overlay_videos,
     resize_video,
 )
-from utils.reddit.post import parse_reddit_post
+from utils.reddit.post import get_reddit_object
 from utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
 from utils.stt import get_speech_to_text
 from utils.tts import get_text_to_speech
@@ -114,7 +114,7 @@ if valid_url:
     )
 
     try:
-        post = parse_reddit_post(reddit.submission(url=REDDIT_URL))
+        post = get_reddit_object(reddit.REDDIT_URL)
 
     except Exception as e:
         st.error(f"Error: {e}")

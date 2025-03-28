@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import os
+import random
 from pathlib import Path
 from typing import ClassVar, List, Literal, Optional
 
@@ -18,7 +19,7 @@ class MediaFile(BaseModel):
     file_name: str
     author: str
     type: Literal["background", "others"] = "others"
-    path: Optional[str] = None  # Permite caminho personalizado
+    path: Optional[str] = None
 
     _file_mapping: ClassVar[dict] = json.load(open("data/file_mapping.json"))
 
@@ -34,7 +35,7 @@ class MediaFile(BaseModel):
 
     def __init__(self, **data):
         super().__init__(**data)
-        if self.path is None:  # Se o usuário não forneceu um caminho, gera um padrão
+        if self.path is None:  # If user doesn't provide a path, generate a default one
             self.path = os.path.join(
                 f"./assets/{self.type.lower()}",
                 self.file_type,
@@ -205,11 +206,23 @@ class Speaker(BaseModel):
         "Damien Black": "male",
     }
 
-    name: str
+    name: Optional[str]
 
     @field_validator("name")
     @classmethod
     def validate_name(cls, value: str) -> str:
+        """
+        Validate that the speaker name is in the list of accepted speakers.
+        If no speaker name is provided, a random speaker will be chosen.
+        If the speaker name is not in the list of accepted speakers, a ValueError will be raised.
+
+        args:
+            value (str): The speaker name.
+        """
+
+        if not value:
+            value = random.choice(list(cls.accepted_speakers.keys()))
+
         if value not in cls.accepted_speakers:
             raise ValueError(
                 f"""
