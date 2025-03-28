@@ -6,7 +6,6 @@ import os
 import random
 
 import langid
-import praw
 from loguru import logger
 
 from src.config import settings
@@ -22,7 +21,7 @@ from src.utils.media.video import (
     overlay_videos,
     resize_video,
 )
-from src.utils.reddit.post import parse_reddit_post
+from src.utils.reddit.post import get_reddit_object
 from src.utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
 from src.utils.stt import stt
 from src.utils.tts import tts
@@ -63,16 +62,7 @@ def main():
 
     # POST
     # Get Reddit post
-    reddit = praw.Reddit(
-        client_id=settings.REDDIT_CLIENT_ID,
-        client_secret=settings.REDDIT_CLIENT_SECRET,
-        user_agent="Accessing Reddit threads",
-        username=settings.REDDIT_USER_NAME,
-        passkey=settings.REDDIT_USER_PASSWORD,
-        check_for_async=False,
-    )
-
-    post = parse_reddit_post(reddit.submission(url=URL))
+    post = get_reddit_object(URL)
 
     # Create asset post folder if it doesn't exist
     if not os.path.exists(f"./assets/posts/{post.post_id}"):
