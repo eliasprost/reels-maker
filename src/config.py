@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     - PYTHONWARNINGS: The warnings to be ignored.
     - TOKENIZERS_PARALLELISM: The parallelism of the tokenizers.
     - TEMP_PATH: The temporary path for storing files.
+    - REDDIT_PATTERN: The pattern for validating Reddit URLs.
+    - BACKGROUND_VIDEOS_JSON: The path to the JSON file containing the background videos.
+    - BACKGROUND_AUDIOS_JSON: The path to the JSON file containing the background audios.
+    - PROCESSED_VIDEOS_CSV: The path to the CSV containing the processed videos information.
     """
 
     # Main video settings
@@ -53,6 +57,13 @@ class Settings(BaseSettings):
     REDDIT_CLIENT_SECRET: str
     REDDIT_USER_NAME: str
     REDDIT_USER_PASSWORD: str
+
+    # Background files
+    BACKGROUND_VIDEOS_JSON: str = "data/background_videos.json"
+    BACKGROUND_AUDIOS_JSON: str = "data/background_audios.json"
+
+    # Processed videos
+    PROCESSED_VIDEOS_CSV: str = "data/processed_videos.csv"
 
     # Screen
     SCREEN_HEIGHT: int = 1920
@@ -66,6 +77,7 @@ class Settings(BaseSettings):
     PYTHONWARNINGS: str = "ignore"
     TOKENIZERS_PARALLELISM: str = "true"
     TEMP_PATH: str = ".temp"
+    REDDIT_PATTERN: str = r"^https://www\.reddit\.com/.*"
 
     class Config:
         env_file = ".env"
