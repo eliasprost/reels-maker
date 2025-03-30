@@ -12,7 +12,7 @@ from utils.path import create_file_folder
 
 
 class SpeechToText:
-    def __init__(self, model_name: str = "large-v2"):
+    def __init__(self, model_name: str = "large-v3-turbo"):
         """
         See all available models at:
         - https://github.com/openai/whisper/blob/main/model-card.md#model-details
