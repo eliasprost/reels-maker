@@ -10,7 +10,7 @@ import yt_dlp
 from loguru import logger
 from pydantic import BaseModel, field_validator, model_validator
 
-from utils.path import create_file_folder
+from src.utils.path import create_file_folder
 
 
 class MediaFile(BaseModel):
@@ -113,7 +113,7 @@ class RedditComment(BaseModel):
 
     @property
     def length(self) -> int:
-        return len(self.body.split())
+        return len(self.body.strip())
 
     @property
     def image_path(self) -> str:
@@ -151,7 +151,7 @@ class RedditPost(BaseModel):
 
     @property
     def length(self) -> int:
-        return len(self.title.split()) + len(self.body.split())
+        return len(self.title.strip()) + len(self.body.strip())
 
     @property
     def image_path(self) -> str:

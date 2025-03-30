@@ -60,7 +60,7 @@ class RedditCommentsPipeline(VideoPipeline):
         captions: bool = True,
         audio_speed: float = 1.3,
         background_audio_volume: float = 0.15,
-        max_comment_length: int = 100,
+        max_comment_length: int = 150,
         silence_duration: float = 0.2,
         background_video: str = None,
         background_audio: str = None,

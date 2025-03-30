@@ -19,5 +19,19 @@
         "file_name": "chill-summer.mp3",
         "author": "Mellow Vibes Radio",
         "type": "background"
+    },
+    {
+        "title": "aesthetic",
+        "url": "https://www.youtube.com/watch?v=e4iQ7IRaR6c",
+        "file_name": "aesthetic.mp3",
+        "author": "mershmelli",
+        "type": "background"
+    },
+    {
+        "title": "aesthetic-2",
+        "url": "https://www.youtube.com/watch?v=RKCwqGUeaKk",
+        "file_name": "aesthetic-2.mp3",
+        "author": "mershmelli",
+        "type": "background"
     }
 ]
