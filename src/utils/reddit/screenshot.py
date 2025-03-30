@@ -5,7 +5,7 @@ from typing import Literal, Tuple
 
 from loguru import logger
 from PIL import Image
-from playwright.async_api import Browser, BrowserContext, async_playwright
+from playwright.async_api import Browser, BrowserContext, TimeoutError, async_playwright
 
 from config import settings
 from schemas import RedditComment, RedditPost
@@ -59,7 +59,7 @@ async def build_browser_context(
     Args:
         playwright_instance: Playwright instance
         url: Reddit URL, can we a post or a comment
-        cookie_file_path: Path to the cookie file. Default is "./data/cookies/cookie-dark-mode.json"
+        theme: "light" or "dark" mode
         timeout: Timeout in milliseconds. Default is 5000
     """
 
@@ -111,6 +111,7 @@ async def take_post_screenshot(
 
     Args:
         post: RedditPost object
+        theme: "light" or "dark" mode
     """
 
     # Check if file exists
@@ -151,12 +152,15 @@ def join_images_vertically(image_paths: list, output_path: str) -> None:
 async def take_comment_screenshot(
     comment: RedditComment,
     theme: Literal["dark", "light"] = "light",
+    timeout: int = 5000,
 ) -> None:
     """
     Take and save a screenshot of a comment, EXCLUDING replies.
 
     Args:
         comment: RedditComment object
+        theme: "light" or "dark" mode
+        timeout: Timeout in milliseconds. Default is 5000
     """
 
     if os.path.exists(comment.image_path):
@@ -170,12 +174,31 @@ async def take_comment_screenshot(
         comment_header = page.get_by_label(
             f"Metadata for {comment.author}'s comment",
         ).first
-        comment_content = page.locator(
-            'div[class="md text-14 rounded-[8px] pb-2xs overflow-hidden"][slot="comment"]',
-        ).first
-        action_row = page.locator(
-            f'shreddit-comment-action-row[slot="actionRow"][permalink="{comment.permalink}"]',
-        ).first
+
+        # Attempt to locate the content and action row within the specified timeout
+        # This is to deal with not fully displayed comments
+        try:
+            comment_content = await page.wait_for_selector(
+                'div[class="md text-14 rounded-[8px] pb-2xs overflow-hidden"][slot="comment"]',
+                timeout=timeout,
+            )
+            action_row = await page.wait_for_selector(
+                f'shreddit-comment-action-row[slot="actionRow"][permalink="{comment.permalink}"]',
+                timeout=timeout,
+            )
+        except TimeoutError:
+            logger.info("Comment content not visible, clicking header to expand.")
+            await comment_header.click()
+
+            # Retry locating the content and action row after expanding
+            comment_content = await page.wait_for_selector(
+                'div[class="md text-14 rounded-[8px] pb-2xs overflow-hidden"][slot="comment"]',
+                timeout=timeout,
+            )
+            action_row = await page.wait_for_selector(
+                f'shreddit-comment-action-row[slot="actionRow"][permalink="{comment.permalink}"]',
+                timeout=timeout,
+            )
 
         # Take individual screenshots
         header_path = comment.image_path.replace(".png", "_header.png")
