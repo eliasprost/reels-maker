@@ -151,7 +151,7 @@ class RedditPost(BaseModel):
 
     @property
     def length(self) -> int:
-        return len(self.title.split()) + len(self.body.split())
+        return len(self.title.strip()) + len(self.body.strip())
 
     @property
     def image_path(self) -> str:
