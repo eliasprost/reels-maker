@@ -113,7 +113,7 @@ class RedditComment(BaseModel):
 
     @property
     def length(self) -> int:
-        return len(self.body.split())
+        return len(self.body.strip())
 
     @property
     def image_path(self) -> str:
