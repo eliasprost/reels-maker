@@ -59,8 +59,10 @@ def get_reddit_object(url: str) -> RedditPost:
                     score=comment.score,
                     permalink=parse_comment_permalink(comment, thread.id),
                 )
-                for comment in thread.comments
-                if comment.body != "[deleted]" and comment.author
+                for comment in thread.comments.list()
+                if isinstance(comment, praw.models.Comment)
+                and comment.body != "[deleted]"
+                and comment.author
             ],
             num_comments=thread.num_comments,
             tag=thread.link_flair_text,
