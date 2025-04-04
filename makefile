@@ -5,8 +5,7 @@ define Comment
 	- Run `make app` to start the Streamlit app.
 endef
 
-.PHONY: install-dev download start app
-
+.PHONY: install-dev
 install-dev:
 	@echo "1. Installing pre-commit"
 	pre-commit install
@@ -15,14 +14,12 @@ install-dev:
 	@echo "-- Finished --"
 	@echo "Please, run `poetry shell` to refresh the virtual environment."
 
+.PHONY: download
 download:
 	@echo "Downloading all background media files..."
 	python -m scripts.download_background_media
 
-start:
-	@echo "Running the main.py..."
-	python -m src.main $(ARGS)
-
+.PHONY: app
 app:
 	@echo "Running the Streamlit app..."
 	streamlit run src/app.py
