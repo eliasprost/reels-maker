@@ -9,7 +9,9 @@ from datetime import datetime
 from typing import List, Literal, Tuple
 
 from loguru import logger
+from stt import SpeechToText
 from tqdm import tqdm
+from tts import TextToSpeech
 
 from config import settings
 from schemas import MediaFile, RedditComment, RedditPost, Speaker
@@ -26,8 +28,6 @@ from utils.media.video import (
 )
 from utils.reddit.post import get_reddit_object
 from utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
-from utils.stt import SpeechToText
-from utils.tts import TextToSpeech
 
 
 class VideoPipeline(ABC):
