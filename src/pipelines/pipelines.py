@@ -9,11 +9,11 @@ from datetime import datetime
 from typing import List, Literal, Tuple
 
 from loguru import logger
-from stt import SpeechToText
 from tqdm import tqdm
-from tts import TextToSpeech
 
 from config import settings
+from pipelines.stt import SpeechToText
+from pipelines.tts import TextToSpeech
 from schemas import MediaFile, RedditComment, RedditPost, Speaker
 from utils.media.audio import concatenate_audio_files, cut_audio, get_audio_duration
 from utils.media.video import (

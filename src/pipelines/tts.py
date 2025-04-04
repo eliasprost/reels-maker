@@ -17,7 +17,15 @@ from utils.path import create_file_folder
 
 
 class TextToSpeech:
+    """
+    Text-to-Speech class using Coqui TTS.
+    """
+
     def __init__(self, model_name="tts_models/multilingual/multi-dataset/xtts_v2"):
+        """
+        See all available models at:
+        - https://github.com/coqui-ai/TTS?tab=readme-ov-file#models
+        """
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = TTS(model_name=model_name, progress_bar=False).to(self.device)
         self.languages = json.load(open("./data/languages.json"))
