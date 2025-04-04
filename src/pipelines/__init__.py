@@ -1,2 +1,2 @@
 # -*- coding: utf-8 -*-
-from .pipelines import RedditCommentsPipeline
+from .videos import RedditCommentsPipeline
