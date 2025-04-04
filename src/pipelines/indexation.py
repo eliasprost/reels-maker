@@ -156,8 +156,7 @@ class VectorStore:
         Args:
             query: Query string
             k: Number of results to return
-            alpha: Weight for vector search (0 to 1).
-                1 for pure vector search, 0 for pure BM25
+            alpha: alpha: Weight for hybrid search (0=BM25, 1=vector)
         """
         # Vector search
         vector_results = self.semantic_search(query, k)
