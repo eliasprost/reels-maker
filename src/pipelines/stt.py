@@ -12,6 +12,10 @@ from utils.path import create_file_folder
 
 
 class SpeechToText:
+    """
+    Speech-to-Text class using Whisper.
+    """
+
     def __init__(self, model_name: str = "large-v3-turbo"):
         """
         See all available models at:

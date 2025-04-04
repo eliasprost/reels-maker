@@ -12,6 +12,9 @@ from loguru import logger
 from tqdm import tqdm
 
 from config import settings
+from pipelines.indexation import Embeddings, VectorStore
+from pipelines.stt import SpeechToText
+from pipelines.tts import TextToSpeech
 from schemas import MediaFile, RedditComment, RedditPost, Speaker
 from utils.media.audio import concatenate_audio_files, cut_audio, get_audio_duration
 from utils.media.video import (
@@ -26,8 +29,6 @@ from utils.media.video import (
 )
 from utils.reddit.post import get_reddit_object
 from utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
-from utils.stt import SpeechToText
-from utils.tts import TextToSpeech
 
 
 class VideoPipeline(ABC):
@@ -70,6 +71,8 @@ class RedditCommentsPipeline(VideoPipeline):
         # Transformers text-audio
         self.stt = SpeechToText()
         self.tts = TextToSpeech()
+        self.embeddings = Embeddings()
+        self.vector_store = VectorStore(self.embeddings)
 
         # Variables
         self.SPEAKER = Speaker(name=speaker)
@@ -106,6 +109,9 @@ class RedditCommentsPipeline(VideoPipeline):
             reverse=True,
         )
 
+        # Dedup comments
+        comments = self.filter_duplicate_comments(comments)
+
         duration = 0
         processed_comments = []
         for comment in comments:
@@ -129,6 +135,47 @@ class RedditCommentsPipeline(VideoPipeline):
                 break
 
         return processed_comments
+
+    def filter_duplicate_comments(
+        self,
+        comments: List[RedditComment],
+        threshold: float = 0.80,
+        alpha: float = 0.5,
+    ) -> List[RedditComment]:
+        """
+        Filter out duplicate comments using hybrid semantic + lexical similarity.
+
+        Args:
+            comments: List of RedditComment objects to filter.
+            threshold: Minimum similarity score to consider as duplicate (0-1).
+            alpha: Weight for hybrid search (0=BM25, 1=vector).
+        """
+        if not comments:
+            return []
+
+        comment_bodies = [c.body for c in comments]
+        self.vector_store.add_documents(comment_bodies)
+        unique_comments, seen = [], set()
+
+        for i, body in enumerate(comment_bodies):
+            if i in seen:
+                continue
+
+            unique_comments.append(comments[i])
+            seen.add(i)
+
+            for sim_body, score in self.vector_store.hybrid_search(
+                body,
+                k=len(comment_bodies),
+                alpha=alpha,
+            ):
+                if sim_body != body and score >= threshold:
+                    seen.add(comment_bodies.index(sim_body))
+
+        logger.info(
+            f"Filtered {len(comments) - len(unique_comments)} duplicate comments",
+        )
+        return unique_comments
 
     async def take_screenshots(
         self,
