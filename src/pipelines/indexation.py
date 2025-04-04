@@ -101,10 +101,12 @@ class VectorStore:
         embeddings = self.embeddings.encode(documents)
         embeddings = normalize(embeddings, axis=1, norm="l2")
 
+        # FAISS index
         dimension = embeddings.shape[1]
         self.index = faiss.IndexFlatIP(dimension)
         self.index.add(embeddings.astype(np.float32))
 
+        # BM25 index
         tokenized_docs = [doc.split() for doc in documents]
         self.bm25 = BM25Okapi(tokenized_docs)
 
@@ -203,16 +205,17 @@ class VectorStore:
         """
 
         # First-stage retrieval
+        # We get a big retrieval if reranker is available to have more candidates to re-rank
         if search_type == "hybrid":
             results = self.hybrid_search(
                 query,
-                k=k * 10 if self.reranker else k,
+                k=k * 100 if self.reranker else k,
                 alpha=alpha,
             )
         if search_type == "semantic":
-            results = self.semantic_search(query, k=k * 10 if self.reranker else k)
+            results = self.semantic_search(query, k=k * 100 if self.reranker else k)
         elif search_type == "keyword":
-            results = self.keyword_search(query, k=k * 10 if self.reranker else k)
+            results = self.keyword_search(query, k=k * 100 if self.reranker else k)
 
         # Re-ranking if available
         if self.reranker:
