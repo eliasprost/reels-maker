@@ -50,7 +50,7 @@ class ReRanker:
         self,
         query: str,
         documents: List[str],
-        top_k: int = 3,
+        k: int = 3,
     ) -> List[Tuple[str, float]]:
         """
         Re-rank documents based on relevance to query
@@ -58,7 +58,7 @@ class ReRanker:
         Args:
             query: Search query
             documents: Candidate documents to re-rank
-            top_k: Number of documents to return
+            k: Number of documents to return
         """
         # Create query-document pairs
         pairs = [[query, doc] for doc in documents]
@@ -70,7 +70,7 @@ class ReRanker:
         scored_docs = list(zip(documents, scores))
         scored_docs.sort(key=lambda x: x[1], reverse=True)
 
-        return scored_docs[:top_k]
+        return scored_docs[:k]
 
 
 class VectorStore:
