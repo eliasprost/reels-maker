@@ -53,19 +53,23 @@ Follow these steps to set up the project:
     cd reddit-reels-maker
     ```
 
-2.  **Install Poetry:**
-    Install Poetry version 1.8 following the instructions [here](https://python-poetry.org/docs/1.8/#installation).
+2.  **Install UV:**
+    Install [uv](https://github.com/astral-sh/uv) following the instructions [here](https://docs.astral.sh/uv/getting-started/installation/).
 
 3.  **Install Dependencies and Create Virtual Environment:**
-    Use Poetry to install the project dependencies and create a virtual environment.
+    Use UV to install the project dependencies and create a virtual environment.
     ```bash
-    poetry install
+    uv sync
     ```
 
 4.  **Activate the Virtual Environment:**
-    Activate the virtual environment using Poetry.
+    Activate the virtual environment manually:
     ```bash
-    poetry shell
+    source .venv/bin/activate
+    ```
+    Or you can set the following alias in your shell configuration file (e.g., `.bashrc`, `.zshrc`):
+    ```
+    alias uvenv='source .venv/bin/activate'
     ```
 
 5.  **Install Development Dependencies:**
@@ -101,7 +105,11 @@ Follow these steps to set up the project:
     - After making changes to the `.env` file, refresh the environment variables by running `source .env` in the terminal.
 
 ## Run
-run `make start` in your terminal and insert the reddit post link when is asked. The generated contet will be saved in the `assets` folder.
+run `make start` in your terminal and insert the reddit post link.
+```bash
+make start link={put your reddit post link here}
+```
+The generated contet will be saved in the `assets` folder.
 
 ## Background media:
 If you want to add more background media, you can do so by adding YouTube links to the `data/background_audios.json` and `data/background_videos.json`. If you want to download all background media in one go, you can use the `download_background_media.py` by running the makefile command: `make download`.

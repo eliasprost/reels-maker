@@ -12,7 +12,12 @@ install-dev:
 	@echo "2. Installing unidic to use MeloTTS"
 	python -m unidic download
 	@echo "-- Finished --"
-	@echo "Please, run `poetry shell` to refresh the virtual environment."
+	@echo "Please, run `'source .venv/bin/activate'` to refresh the virtual environment."
+
+.PHONY: start
+start:
+	@echo "Running the main script with link=$(link)..."
+	uv run python3 -m src.main --link $(link)
 
 .PHONY: download
 download:
