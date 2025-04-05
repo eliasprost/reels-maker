@@ -2,13 +2,11 @@
 import json
 import os
 import re
-import subprocess
 import time
-from typing import List
 
-import spacy
 import streamlit as st
 import torch
+from chonkie import SemanticChunker
 from loguru import logger
 from TTS.api import TTS
 
@@ -21,54 +19,30 @@ class TextToSpeech:
     Text-to-Speech class using Coqui TTS.
     """
 
-    def __init__(self, model_name="tts_models/multilingual/multi-dataset/xtts_v2"):
+    def __init__(
+        self,
+        model_name="tts_models/multilingual/multi-dataset/xtts_v2",
+        max_length=200,
+    ):
         """
         See all available models at:
         - https://github.com/coqui-ai/TTS?tab=readme-ov-file#models
+
+        Args:
+            model_name (str, optional): Model name.
+                Defaults to "tts_models/multilingual/multi-dataset/xtts_v2".
+            max_length (int, optional): Maximum length of the text to be processed. Defaults to 200.
         """
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = TTS(model_name=model_name, progress_bar=False).to(self.device)
         self.languages = json.load(open("./data/languages.json"))
-
-    def get_spacy_model(self, language: str) -> str:
-        """
-        Returns the spaCy model name for a given language code.
-
-        Args:
-            language (str): Language code for which spaCy model is required.
-        """
-
-        for lang in self.languages:
-            if lang["lang_code"] == language:
-                logger.info(
-                    f"Using spaCy model {lang['spacy_model']} for language {language}",
-                )
-                return lang["spacy_model"]
-
-        logger.error(f"Language {language} not supported. Using english model instead.")
-        return "en_core_web_sm"
-
-    def load_spacy_model(self, language: str) -> spacy.language.Language:
-        """
-        Load the correct Spacy model given the language.
-
-        Args:
-            language (str): Language code for which spaCy model is required.
-        """
-
-        model_name = self.get_spacy_model(language)
-
-        try:
-            logger.info(f"Loading spaCy model {model_name}")
-            return spacy.load(model_name)
-
-        except OSError:
-
-            logger.info(f"Model {model_name} not found. Downloading...")
-            subprocess.run(["python", "-m", "spacy", "download", model_name])
-
-            logger.info(f"Loading spaCy model {model_name}")
-            return spacy.load(model_name)
+        self.max_length = max_length
+        self.chunker = SemanticChunker(
+            embedding_model="all-MiniLM-L6-v2",
+            chunk_size=int(self.max_length / 5),
+            threshold=0.7,
+            min_chunk_size=10,
+        )
 
     def sanitize_text(self, text: str) -> str:
         """
@@ -93,45 +67,6 @@ class TextToSpeech:
         result = " ".join(result.split())
 
         return result[:-1] if result.endswith(".") else result
-
-    def split_text(self, text: str, language: str, max_length: int = 200) -> List[str]:
-        """
-        Split a long text into multiple shorter texts based on a maximum length and mantaining
-        coherence with sentences.
-        Args:
-            text (str): Text to split
-            language (str): Language of the text. Used to load the appropriate spaCy model.
-            max_length (int): Maximum length of each chunk. Default is 200 characters.
-        """
-
-        spacy_model = self.load_spacy_model(language)
-        doc = spacy_model(text)
-        phrases = []
-
-        for sent in doc.sents:
-            sentence = sent.text.strip()
-            if len(sentence) <= max_length:
-                phrases.append(sentence)
-            else:
-                # Further split on commas and semicolons while keeping coherence
-                parts = [part.strip() for part in sentence.split(",")]
-                current_phrase = ""
-
-                for part in parts:
-                    candidate = (
-                        (current_phrase + ", " + part) if current_phrase else part
-                    )
-                    if len(candidate) <= max_length:
-                        current_phrase = candidate
-                    else:
-                        if current_phrase:
-                            phrases.append(current_phrase.strip())
-                        current_phrase = part
-
-                if current_phrase:
-                    phrases.append(current_phrase.strip())
-
-        return phrases
 
     def generate_audio_clip(
         self,
@@ -192,7 +127,8 @@ class TextToSpeech:
                 processed_files = []
 
                 try:
-                    splits = self.split_text(text, language)
+                    # Split the text into chunks using the semantic chunker
+                    splits = [chunk.text for chunk in self.chunker.chunk(text)]
 
                     # Clean empty text from splits
                     splits = [part for part in splits if part.strip() != ""]
