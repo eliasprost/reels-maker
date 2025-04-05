@@ -70,6 +70,9 @@ Follow these steps to set up the project:
     Or you can set the following alias in your shell configuration file (e.g., `.bashrc`, `.zshrc`):
     ```
     alias uvenv='source .venv/bin/activate'
+
+    # Then, you can activate the virtual environment with:
+    uvenv
     ```
 
 5.  **Install Development Dependencies:**
