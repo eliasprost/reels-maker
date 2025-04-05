@@ -140,6 +140,6 @@ class SpeechToText:
 @st.cache_resource
 def get_speech_to_text():
     """
-    Create and cache a SpeechToText instance.
+    Create and cache a SpeechToText instance to use in Streamlit with cache
     """
     return SpeechToText()
