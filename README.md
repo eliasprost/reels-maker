@@ -70,21 +70,22 @@ Follow these steps to set up the project:
     Or you can set the following alias in your shell configuration file (e.g., `.bashrc`, `.zshrc`):
     ```
     alias uvenv='source .venv/bin/activate'
-
-    # Then, you can activate the virtual environment with:
+    ```
+    Then, you can activate the virtual environment with:
+    ```
     uvenv
     ```
 
-5.  **Install Development Dependencies:**
+6.  **Install Development Dependencies:**
     Run the `make install-dev` command to install pre-commit and the unidic library, which are necessary for development.
     ```bash
     make install-dev
     ```
 
-6.  **Obtain Reddit API Credentials:**
+7.  **Obtain Reddit API Credentials:**
     Follow the instructions in [this video](https://www.youtube.com/watch?v=4Lmfgw4RZCM) to get your Reddit client ID and secret.
 
-7.  **Configure the `.env` File:**
+8.  **Configure the `.env` File:**
     Create a `.env` file in the root directory and configure it with the following variables:
 
     ```
