@@ -76,7 +76,7 @@ class Settings(BaseSettings):
 
     # Others
     PYTHONWARNINGS: str = "ignore"
-    TOKENIZERS_PARALLELISM: str = "true"
+    TOKENIZERS_PARALLELISM: str = "false"
     TEMP_PATH: str = ".temp"
     REDDIT_PATTERN: str = r"^https://www\.reddit\.com/.*"
     FORCE_HF_CPU: bool = False
