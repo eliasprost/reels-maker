@@ -11,13 +11,13 @@ from typing import List, Literal, Tuple
 from loguru import logger
 from tqdm import tqdm
 
-from config import settings
-from pipelines.indexation import Embeddings, VectorStore
-from pipelines.stt import SpeechToText
-from pipelines.tts import TextToSpeech
-from schemas import MediaFile, RedditComment, RedditPost, Speaker
-from utils.media.audio import concatenate_audio_files, cut_audio, get_audio_duration
-from utils.media.video import (
+from src.config import settings
+from src.pipelines.indexation import Embeddings, VectorStore
+from src.pipelines.stt import SpeechToText
+from src.pipelines.tts import TextToSpeech
+from src.schemas import MediaFile, RedditComment, RedditPost, Speaker
+from src.utils.media.audio import concatenate_audio_files, cut_audio, get_audio_duration
+from src.utils.media.video import (
     add_captions,
     combine_video_with_audio,
     create_image_videoclip,
@@ -27,8 +27,8 @@ from utils.media.video import (
     overlay_videos,
     resize_video,
 )
-from utils.reddit.post import get_reddit_object
-from utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
+from src.utils.reddit.post import get_reddit_object
+from src.utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
 
 
 class VideoPipeline(ABC):

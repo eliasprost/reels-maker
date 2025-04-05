@@ -8,7 +8,7 @@ import whisper
 from loguru import logger
 from whisper.utils import get_writer
 
-from utils.path import create_file_folder
+from src.utils.path import create_file_folder
 
 
 class SpeechToText:

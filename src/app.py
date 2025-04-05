@@ -9,12 +9,12 @@ import pandas as pd
 import praw
 import streamlit as st
 
-from config import settings
-from pipelines.stt import get_speech_to_text
-from pipelines.tts import get_text_to_speech
-from schemas import MediaFile, Speaker
-from utils.media.audio import concatenate_audio_files, cut_audio, get_audio_duration
-from utils.media.video import (
+from src.config import settings
+from src.pipelines.stt import get_speech_to_text
+from src.pipelines.tts import get_text_to_speech
+from src.schemas import MediaFile, Speaker
+from src.utils.media.audio import concatenate_audio_files, cut_audio, get_audio_duration
+from src.utils.media.video import (
     add_captions,
     combine_video_with_audio,
     create_image_videoclip,
@@ -24,8 +24,8 @@ from utils.media.video import (
     overlay_videos,
     resize_video,
 )
-from utils.reddit.post import get_reddit_object
-from utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
+from src.utils.reddit.post import get_reddit_object
+from src.utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
 
 # Initialize session state
 if "selected_video" not in st.session_state:

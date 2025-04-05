@@ -5,8 +5,8 @@ import re
 import praw
 from loguru import logger
 
-from config import settings
-from schemas import RedditComment, RedditPost
+from src.config import settings
+from src.schemas import RedditComment, RedditPost
 
 
 def parse_comment_permalink(comment: praw.models.Comment, post_id: str) -> str:

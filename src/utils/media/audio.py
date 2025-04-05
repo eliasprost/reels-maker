@@ -6,8 +6,8 @@ from pathlib import Path
 import ffmpeg
 from loguru import logger
 
-from config import settings
-from utils.path import create_file_folder
+from src.config import settings
+from src.utils.path import create_file_folder
 
 
 def generate_silence(duration: float, output_path: str) -> None:
