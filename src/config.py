@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     - BACKGROUND_VIDEOS_JSON: The path to the JSON file containing the background videos.
     - BACKGROUND_AUDIOS_JSON: The path to the JSON file containing the background audios.
     - PROCESSED_VIDEOS_CSV: The path to the CSV containing the processed videos information.
+    - FORCE_HF_CPU: Whether to force the use of CPU for Hugging Face models.
     """
 
     # Main video settings
@@ -78,6 +79,7 @@ class Settings(BaseSettings):
     TOKENIZERS_PARALLELISM: str = "true"
     TEMP_PATH: str = ".temp"
     REDDIT_PATTERN: str = r"^https://www\.reddit\.com/.*"
+    FORCE_HF_CPU: bool = False
 
     class Config:
         env_file = ".env"
