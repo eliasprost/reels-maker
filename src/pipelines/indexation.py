@@ -10,6 +10,10 @@ from sklearn.preprocessing import normalize
 
 from src.config import settings
 
+# Set the number of threads for PyTorch to 1 to avoid issues in MX Apple chip
+# https://www.reddit.com/r/comfyui/comments/1c0n5de/there_appear_to_be_1_leaked_semaphore_objects_to/
+torch.set_num_threads(1)
+
 
 class Embeddings:
     """

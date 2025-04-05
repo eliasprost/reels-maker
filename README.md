@@ -102,6 +102,7 @@ Follow these steps to set up the project:
 
     # Others
     PRESET=slow
+    TOKENIZERS_PARALLELISM=false
     ```
 
     **Notes:**

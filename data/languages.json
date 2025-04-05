@@ -2,16 +2,14 @@
     {
         "lang_code": "en",
         "outro": "Well, what do you think? Tell me in the comments",
-        "spacy_model": "en_core_web_trf"
     },
     {
         "lang_code": "es",
         "outro": "Bien, y tu que piensas? Cuéntame en los comentarios",
-        "spacy_model": "es_dep_news_trf"
     },
     {
+
         "lang_code": "pt",
         "outro": "Bom, e que você acha? Me conte nos comentários",
-        "spacy_model": "pt_core_news_lg"
     }
 ]
