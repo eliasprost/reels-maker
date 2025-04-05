@@ -3,9 +3,12 @@ from typing import List, Literal, Tuple, Union
 
 import faiss
 import numpy as np
+import torch
 from rank_bm25 import BM25Okapi
 from sentence_transformers import CrossEncoder, SentenceTransformer
 from sklearn.preprocessing import normalize
+
+from src.config import settings
 
 
 class Embeddings:
@@ -13,7 +16,7 @@ class Embeddings:
     Embeddings class using Sentence Transformers.
     """
 
-    def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
+    def __init__(self, model_name: str):
         """
         Initialize the sentence transformer model.
 
@@ -21,7 +24,12 @@ class Embeddings:
             model_name: Pre-trained model name or path.
             See: https://huggingface.co/sentence-transformers
         """
-        self.model = SentenceTransformer(model_name)
+        self.device = (
+            "mps"
+            if torch.backends.mps.is_available() and not settings.FORCE_HF_CPU
+            else "cpu"
+        )
+        self.model = SentenceTransformer(model_name, device=self.device)
 
     def encode(self, text: Union[str, List[str]]) -> np.ndarray:
         """
@@ -38,13 +46,18 @@ class ReRanker:
     Cross-encoder re-ranker for improved relevance
     """
 
-    def __init__(self, model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"):
+    def __init__(self, model_name: str):
         """
         Args:
             model_name: Cross-encoder model for re-ranking
             See: https://huggingface.co/cross-encoder
         """
-        self.model = CrossEncoder(model_name)
+        self.device = (
+            "mps"
+            if torch.backends.mps.is_available() and not settings.FORCE_HF_CPU
+            else "cpu"
+        )
+        self.model = CrossEncoder(model_name, device=self.device)
 
     def rerank(
         self,
@@ -219,6 +232,12 @@ class VectorStore:
         # Re-ranking if available
         if self.reranker:
             docs = [doc for doc, _ in results]
-            results = self.reranker.rerank(query, docs, top_k=k)
+            results = self.reranker.rerank(query, docs, k=k)
 
         return results[:k]
+
+
+vector_store = VectorStore(
+    embeddings=Embeddings("sentence-transformers/all-MiniLM-L6-v2"),
+    reranker=ReRanker("cross-encoder/ms-marco-MiniLM-L-6-v2"),
+)

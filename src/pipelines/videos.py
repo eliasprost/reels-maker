@@ -12,7 +12,7 @@ from loguru import logger
 from tqdm import tqdm
 
 from src.config import settings
-from src.pipelines.indexation import Embeddings, VectorStore
+from src.pipelines.indexation import Embeddings, ReRanker, VectorStore
 from src.pipelines.stt import SpeechToText
 from src.pipelines.tts import TextToSpeech
 from src.schemas import MediaFile, RedditComment, RedditPost, Speaker
@@ -71,8 +71,10 @@ class RedditCommentsPipeline(VideoPipeline):
         # Transformers text-audio
         self.stt = SpeechToText()
         self.tts = TextToSpeech()
-        self.embeddings = Embeddings()
-        self.vector_store = VectorStore(self.embeddings)
+        self.vector_store = VectorStore(
+            embeddings=Embeddings("sentence-transformers/all-MiniLM-L6-v2"),
+            reranker=ReRanker("cross-encoder/ms-marco-MiniLM-L-6-v2"),
+        )
 
         # Variables
         self.SPEAKER = Speaker(name=speaker)
