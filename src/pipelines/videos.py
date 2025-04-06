@@ -352,13 +352,13 @@ class RedditCommentsPipeline(VideoPipeline):
         videos = [
             MediaFile(**video)
             for video in json.load(open(settings.BACKGROUND_VIDEOS_JSON))
-            if MediaFile(**video).type == "background"
+            if MediaFile(**video).type == "gameplay"
         ]
 
         audios = [
             MediaFile(**audio)
             for audio in json.load(open(settings.BACKGROUND_AUDIOS_JSON))
-            if MediaFile(**audio).type == "background"
+            if MediaFile(**audio).type == "gameplay"
         ]
 
         video = next(

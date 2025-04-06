@@ -18,7 +18,7 @@ class MediaFile(BaseModel):
     url: str
     file_name: str
     author: str
-    type: Literal["background", "others"] = "others"
+    type: Literal["gameplay", "satisfying", "other"] = "other"
     path: Optional[str] = None
 
     _file_mapping: ClassVar[dict] = json.load(open("data/file_mapping.json"))
