@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     - https://docs.pydantic.dev/latest/concepts/pydantic_settings/
 
     Attributes:
+    - HF_TOKEN: The token to login to Hugging Face Hub.
     - MIN_VIDEO_DURATION: The minimum duration of the video in seconds.
     - REDDIT_CLIENT_ID: The client ID of the Reddit application.
     - REDDIT_CLIENT_SECRET: The client secret of the Reddit application.
@@ -49,6 +50,9 @@ class Settings(BaseSettings):
     - PROCESSED_VIDEOS_CSV: The path to the CSV containing the processed videos information.
     - FORCE_HF_CPU: Whether to force the use of CPU for Hugging Face models.
     """
+
+    # Credentials
+    HF_TOKEN: str = "placeholder"
 
     # Main video settings
     MIN_VIDEO_DURATION: float = 70.0
