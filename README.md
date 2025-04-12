@@ -117,7 +117,7 @@ make start link={put your reddit post link here}
 The generated contet will be saved in the `assets` folder.
 
 ## Background media:
-If you want to add more background media, you can do so by adding YouTube links to the `data/background_audios.json` and `data/background_videos.json`. If you want to download all background media in one go, you can use the `download_background_media.py` by running the makefile command: `make download`.
+If you want to add more background media, you can do so by adding YouTube links to the `data/audios.json` and `data/videos.json`. If you want to download all background media in one go, you can use the `download_background_media.py` by running the makefile command: `make download`.
 
 ## Makefile available commands
 - Run `make install-dev` to install the project dev dependencies.
