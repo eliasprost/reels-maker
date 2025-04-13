@@ -15,5 +15,3 @@ def create_file_folder(file_path: str) -> None:
     if not path.parent.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
         logger.info(f"Folder not found. Created folder: {path.parent}")
-    else:
-        logger.info(f"Folder already exists: {path.parent}")

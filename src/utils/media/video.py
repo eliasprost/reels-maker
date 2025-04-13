@@ -572,7 +572,8 @@ def overlay_videos(
 def add_captions(
     input_file: str,
     output_file: str,
-    subtitle_path: str,
+    caption_path: str,
+    font_path: str = None,
 ) -> None:
     """
     Incorporate a ASS/SRT subtitle file into the input video.
@@ -580,7 +581,9 @@ def add_captions(
     Args:
         input_file (str): The path of the input video.
         output_file (str): The path where the generated subtitle will be saved.
-        subtitle_path (str): The path of the subtitle file.
+        caption_path (str): The path of the subtitle file.
+        font_path (str, optional): The path of the font file. Defaults to None.
+            This ttf file must be defined if the subtitle file uses a custom font.
     """
 
     # check if output_path exists
@@ -595,10 +598,29 @@ def add_captions(
         create_file_folder(output_file)
         video = ffmpeg.input(input_file)
         audio = video.audio
-        ffmpeg.concat(video.filter("subtitles", subtitle_path), audio, v=1, a=1).output(
-            output_file,
-        ).run()
-        logger.info(f"Subtitle added successfully to video at {output_file}")
+
+        if font_path:
+            video = video.filter(
+                "subtitles",
+                caption_path,
+                fontsdir=Path(font_path).parent,
+            )
+            ffmpeg.concat(video, audio, v=1, a=1).output(
+                output_file,
+                loglevel="quiet",
+            ).run()
+
+        else:
+            ffmpeg.concat(
+                video.filter("subtitles", caption_path),
+                audio,
+                v=1,
+                a=1,
+            ).output(
+                output_file,
+                loglevel="quiet",
+            ).run()
+            logger.info(f"Subtitle added successfully to video at {output_file}")
 
     except Exception as e:
         logger.error(

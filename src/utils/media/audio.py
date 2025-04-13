@@ -25,6 +25,7 @@ def generate_silence(duration: float, output_path: str) -> None:
     ffmpeg.input("anullsrc=r=44100:cl=stereo", f="lavfi").output(
         output_path,
         t=duration,
+        loglevel="quiet",
     ).run(overwrite_output=True)
 
 
@@ -76,7 +77,9 @@ def concatenate_audio_files(
 
     # Concatenate the inputs
     try:
-        ffmpeg.concat(*inputs, v=0, a=1).output(output_file).run(overwrite_output=True)
+        ffmpeg.concat(*inputs, v=0, a=1).output(output_file, loglevel="quiet").run(
+            overwrite_output=True,
+        )
         logger.info(f"Audio files concatenated to {output_file}")
     except ffmpeg.Error as e:
         logger.error(f"ffmpeg error: {e.stderr.decode('utf8')}")
@@ -159,6 +162,7 @@ def cut_audio(
                 format="mp3",
                 acodec="libmp3lame",
                 qscale=2,
+                loglevel="quiet",
             )
             .overwrite_output()
             .run()
