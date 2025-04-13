@@ -4,7 +4,7 @@ import asyncio
 
 from loguru import logger
 
-from src.pipelines.videos import RedditCommentsPipeline
+from src.pipelines.reddit_comments import reddit_comments_pipeline
 
 
 async def create_video_reddit(link: str):
@@ -17,13 +17,12 @@ async def create_video_reddit(link: str):
 
     try:
         logger.info("Starting the Reddit Comments Pipeline, please wait...")
-        pipeline = RedditCommentsPipeline()
 
     except Exception as e:
         logger.error(f"Error initializing pipeline: {e}")
         return
 
-    await pipeline.run(link)
+    await reddit_comments_pipeline.run(link)
 
 
 if __name__ == "__main__":
