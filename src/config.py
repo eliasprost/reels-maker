@@ -64,8 +64,8 @@ class Settings(BaseSettings):
     REDDIT_USER_PASSWORD: str
 
     # Background files
-    BACKGROUND_VIDEOS_JSON: str = "data/background_videos.json"
-    BACKGROUND_AUDIOS_JSON: str = "data/background_audios.json"
+    BACKGROUND_VIDEOS_JSON: str = "data/videos.json"
+    BACKGROUND_AUDIOS_JSON: str = "data/audios.json"
 
     # Processed videos
     PROCESSED_VIDEOS_CSV: str = "data/processed_videos.csv"
