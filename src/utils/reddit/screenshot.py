@@ -5,7 +5,7 @@ from typing import List, Literal, Tuple
 
 from loguru import logger
 from PIL import Image
-from playwright.async_api import Browser, BrowserContext, TimeoutError, async_playwright
+from playwright.async_api import Browser, BrowserContext, async_playwright
 
 from src.config import settings
 from src.schemas import RedditComment
@@ -163,8 +163,9 @@ async def take_post_screenshot(
             content = page.locator(  # noqa: F841
                 'div[class="text-neutral-content"][slot="text-body"]',
             ).first
-        except TimeoutError:
-            logger.info("The post content is inexistent or not visible.")
+
+        except Exception as e:
+            logger.warning(f"The post content is inexistent or not visible: {e}")
 
         action_row = page.locator(  # noqa: F841
             'div[class="shreddit-post-container flex gap-sm flex-row items-center flex-nowrap justify-start h-2xl mt-md px-md xs:px-0"]',  # noqa: E501
@@ -175,9 +176,15 @@ async def take_post_screenshot(
         for element in elements:
             path = post.image_path.replace(".png", f"_{element}.png")
             locator = eval(element)
+
             if locator:
-                await locator.screenshot(path=path)
-                screenshots.append(path)
+                try:
+                    await locator.screenshot(path=path, timeout=timeout)
+                    screenshots.append(path)
+
+                except Exception as e:
+                    logger.warning(f"Failed to take screenshot of {element}: {e}.")
+                    continue
 
         if screenshots:
             # Combine the screenshots vertically
@@ -237,26 +244,45 @@ async def take_comment_screenshot(
                 timeout=timeout,
             )
 
-        except TimeoutError:
-            logger.info("Comment content not visible, clicking header to expand.")
+        except Exception:
+
+            logger.info("Clicking header to expand.")
             await header.click()
 
-            # Retry locating the content and action row after expanding
-            content = await page.wait_for_selector(  # noqa: F841
-                'div[class="md text-14 rounded-[8px] pb-2xs overflow-hidden"][slot="comment"]',
-                timeout=timeout,
-            )
-            action_row = await page.wait_for_selector(  # noqa: F841
-                f'shreddit-comment-action-row[slot="actionRow"][permalink="{comment.permalink}"]',
-                timeout=timeout,
-            )
+            try:
+                # Retry locating the content and action row after expanding
+                content = await page.wait_for_selector(  # noqa: F841
+                    'div[class="md text-14 rounded-[8px] pb-2xs overflow-hidden"][slot="comment"]',
+                    timeout=timeout,
+                )
+
+            except Exception as e:
+                logger.warning(f"Comment content still not visible, skipping. {e}")
+
+            try:
+                action_row = await page.wait_for_selector(  # noqa: F841
+                    f'shreddit-comment-action-row[slot="actionRow"][permalink="{comment.permalink}"]',  # noqa: E501
+                    timeout=timeout,
+                )
+
+            except Exception as e:
+                logger.warning(f"Comment action row still not visible, skipping. {e}")
 
         # Take screenshots
         screenshots = []
         for element in elements:
             path = comment.image_path.replace(".png", f"_{element}.png")
-            await eval(element).screenshot(path=path)
-            screenshots.append(path)
+            locator = eval(element)
+            if locator:
+                try:
+                    await locator.screenshot(path=path)
+                    screenshots.append(path)
+
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to take screenshot of {element}, skipping. {e}",
+                    )
+                    continue
 
         # Combine the screenshots vertically
         join_images_vertically(
