@@ -5,6 +5,7 @@ from typing import List
 
 from tqdm import tqdm
 
+from src.config import setting
 from src.schemas import MediaFile
 
 # NOTE:
@@ -29,10 +30,10 @@ if __name__ == "__main__":
     print("Loading JSON data...")
     # Load and process background audios and videos
     audios = [
-        MediaFile(**audio) for audio in json.load(open("./data/background_audios.json"))
+        MediaFile(**audio) for audio in json.load(open(setting.BACKGROUND_AUDIOS_JSON))
     ]
     videos = [
-        MediaFile(**video) for video in json.load(open("./data/background_videos.json"))
+        MediaFile(**video) for video in json.load(open(setting.BACKGROUND_VIDEOS_JSON))
     ]
 
     print(f"Downloading all background audio files({len(audios)})...")
