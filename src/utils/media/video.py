@@ -64,7 +64,13 @@ def create_image_videoclip(
             "b:a": "256k",
         }
         (
-            ffmpeg.output(input_image, input_audio, output_path, **output_args)
+            ffmpeg.output(
+                input_image,
+                input_audio,
+                output_path,
+                loglevel="quiet",
+                **output_args,
+            )
             .overwrite_output()
             .run()
         )
@@ -573,7 +579,7 @@ def add_captions(
     input_file: str,
     output_file: str,
     caption_path: str,
-    font_path: str = None,
+    font_path: str = "assets/fonts",
 ) -> None:
     """
     Incorporate a ASS/SRT subtitle file into the input video.
@@ -582,8 +588,8 @@ def add_captions(
         input_file (str): The path of the input video.
         output_file (str): The path where the generated subtitle will be saved.
         caption_path (str): The path of the subtitle file.
-        font_path (str, optional): The path of the font file. Defaults to None.
-            This ttf file must be defined if the subtitle file uses a custom font.
+        font_path (str, optional): The path of the font file. Defaults to assets/fonts.
+            This path file must be defined correctly inif the subtitle file uses a custom font.
     """
 
     # check if output_path exists
@@ -599,28 +605,19 @@ def add_captions(
         video = ffmpeg.input(input_file)
         audio = video.audio
 
-        if font_path:
-            video = video.filter(
-                "subtitles",
-                caption_path,
-                fontsdir=Path(font_path).parent,
-            )
-            ffmpeg.concat(video, audio, v=1, a=1).output(
-                output_file,
-                loglevel="quiet",
-            ).run()
+        video = video.filter(
+            "subtitles",
+            caption_path,
+            fontsdir=(
+                Path(font_path).parent if font_path.endswith(".ttf") else font_path
+            ),
+        )
+        ffmpeg.concat(video, audio, v=1, a=1).output(
+            output_file,
+            loglevel="quiet",
+        ).run()
 
-        else:
-            ffmpeg.concat(
-                video.filter("subtitles", caption_path),
-                audio,
-                v=1,
-                a=1,
-            ).output(
-                output_file,
-                loglevel="quiet",
-            ).run()
-            logger.info(f"Subtitle added successfully to video at {output_file}")
+        logger.info(f"Subtitle added successfully to video at {output_file}")
 
     except Exception as e:
         logger.error(
