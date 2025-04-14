@@ -44,7 +44,7 @@ class RedditCommentsPipeline(VideoPipeline):
         theme: Literal["dark", "light"] = "light",
         captions: CaptionStyle = None,
         audio_speed: float = 1.3,
-        background_audio_volume: float = 0.15,
+        background_audio_volume: float = 0.20,
         max_comment_length: int = 150,
         silence_duration: float = 0.2,
         background_video: str = None,
@@ -555,6 +555,9 @@ class RedditCommentsPipeline(VideoPipeline):
             + [comment.body for comment in comments]
             + [outro_text],
         )
+
+        with open(f"assets/posts/{post.post_id}/video_text.txt", "w") as f:
+            f.write(video_text)
 
         # Combine all videos
         self.generate_reel_video(
