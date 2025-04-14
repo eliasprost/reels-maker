@@ -38,7 +38,7 @@ dependencies = [
   "rank-bm25>=0.2.2",
   "unidic>=1.1.0",
   "chonkie[semantic]>=0.5.1",
-  "stable-ts>=2.19.0",
+  "stable-ts[hf]>=2.19.0",
 ]
 
 [dependency-groups]
