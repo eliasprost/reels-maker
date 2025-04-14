@@ -57,8 +57,10 @@ class TextToSpeech:
 
         # remove any urls from the text
         regex_urls = r"((http|https)\:\/\/)?[a-zA-Z0-9\.\/\?\:@\-_=#]+\.([a-zA-Z]){2,6}([a-zA-Z0-9\.\&\/\?\:@\-_=#])*"  # noqa: E501
-
         result = re.sub(regex_urls, " ", text)
+
+        # normalize Brazilian laughs
+        result = re.sub(r"\b[kK]{3,}\b", "kk", result)
 
         # note: not removing apostrophes
         regex_expr = r"\s['|’]|['|’]\s|[\^_~@!&;#:\-%—“”‘\"%\*/{}\[\]\(\)\\|<>=+]"
