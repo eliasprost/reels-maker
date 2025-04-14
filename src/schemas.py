@@ -254,17 +254,26 @@ class CaptionStyle(BaseModel):
     the the project before. Add it to the fonts folder: 'assets/fonts' before.
     """
 
+    # pysub2 properties
     fontname: Optional[str] = "Arial"
     fontsize: Optional[int] = 12
     alignment: Optional[Literal["bottom", "middle", "top"]] = "bottom"
     primarycolor: Optional[Tuple[int, int, int, int]] = (197, 241, 79, 1)
-    secondarycolor: Optional[Tuple[int, int, int, int]] = (255, 255, 255, 10)
-    outlinecolor: Optional[Tuple[int, int, int, int]] = (255, 255, 255, 10)
+    secondarycolor: Optional[Tuple[int, int, int, int]] = (255, 255, 255, 1)
+    outlinecolor: Optional[Tuple[int, int, int, int]] = (0, 0, 0, 10)
     backcolor: Optional[Tuple[int, int, int, int]] = (0, 0, 0, 10)
     bold: Optional[bool] = True
     italic: Optional[bool] = False
     outline: Optional[int] = 1
-    shadow: Optional[int] = 1
+    shadow: Optional[int] = 0
+
+    # External properties
+    segment_level: Optional[bool] = True
+    word_levels: Optional[bool] = True
+
+    @property
+    def font_path(self) -> str:
+        return f"assets/fonts/{self.fontname.replace(' ', '_')}"
 
     @model_validator(mode="after")
     @classmethod
