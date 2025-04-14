@@ -60,7 +60,7 @@ class TextToSpeech:
         result = re.sub(regex_urls, " ", text)
 
         # normalize Brazilian laughs
-        result = re.sub(r"\b[kK]{3,}\b", "kk", result)
+        result = re.sub(r"\b[kK]{4,}\b", "kkk", result)
 
         # note: not removing apostrophes
         regex_expr = r"\s['|’]|['|’]\s|[\^_~@!&;#:\-%—“”‘\"%\*/{}\[\]\(\)\\|<>=+]"
