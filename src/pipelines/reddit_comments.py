@@ -4,7 +4,6 @@ import asyncio
 import csv
 import json
 import random
-from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import List, Literal, Tuple
 
@@ -12,10 +11,11 @@ from loguru import logger
 from tqdm import tqdm
 
 from src.config import settings
-from src.pipelines.indexation import Embeddings, ReRanker, VectorStore
-from src.pipelines.stt import SpeechToText
-from src.pipelines.tts import TextToSpeech
-from src.schemas import MediaFile, RedditComment, RedditPost, Speaker
+from src.pipelines.indexation import vector_store
+from src.pipelines.schemas import VideoPipeline
+from src.pipelines.stt import stt_pipeline
+from src.pipelines.tts import tts_pipeline
+from src.schemas import CaptionStyle, MediaFile, RedditComment, RedditPost, Speaker
 from src.utils.media.audio import concatenate_audio_files, cut_audio, get_audio_duration
 from src.utils.media.video import (
     add_captions,
@@ -31,22 +31,6 @@ from src.utils.reddit.post import get_reddit_object
 from src.utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
 
 
-class VideoPipeline(ABC):
-    """
-    A base class for creating videos.
-    """
-
-    def __init__(self, name: str, description: str = "") -> None:
-        self.name = name
-        self.description = description
-
-    @abstractmethod
-    def run(self) -> None:
-        """
-        Method to be implemented by subclasses.
-        """
-
-
 class RedditCommentsPipeline(VideoPipeline):
     """
     A class for creating videos from Reddit post comments.
@@ -58,23 +42,27 @@ class RedditCommentsPipeline(VideoPipeline):
         description: str = "A pipeline for creating videos from Reddit and their comments",
         speaker: str = None,
         theme: Literal["dark", "light"] = "light",
-        captions: bool = True,
+        captions: CaptionStyle = None,
         audio_speed: float = 1.3,
         background_audio_volume: float = 0.15,
         max_comment_length: int = 150,
         silence_duration: float = 0.2,
         background_video: str = None,
         background_audio: str = None,
+        remove_duplicates: bool = True,
+        sort_by_score: bool = False,
     ) -> None:
         super().__init__(name, description)
 
         # Transformers text-audio
-        self.stt = SpeechToText()
-        self.tts = TextToSpeech()
-        self.vector_store = VectorStore(
-            embeddings=Embeddings("sentence-transformers/all-MiniLM-L6-v2"),
-            reranker=ReRanker("cross-encoder/ms-marco-MiniLM-L-6-v2"),
-        )
+        self.stt = stt_pipeline
+        self.tts = tts_pipeline
+        self.vector_store = vector_store
+
+        # Captions
+        self.captions = captions
+        self.remove_duplicates = remove_duplicates
+        self.sort_by_score = sort_by_score
 
         # Variables
         self.SPEAKER = Speaker(name=speaker)
@@ -85,34 +73,39 @@ class RedditCommentsPipeline(VideoPipeline):
         self.BACKGROUND_AUDIO_VOLUME = background_audio_volume
         self.AUDIO_SPEED = audio_speed
         self.THEME = theme
-        self.CAPTIONS = captions
         self.MAX_COMMENT_LENGTH = max_comment_length
         self.SILENCE_DURATION = silence_duration
         self.BACKGROUND_VIDEO_NAME = background_video
         self.BACKGROUND_AUDIO_NAME = background_audio
         self.REEL_PATH = "assets/posts/{post_id}/reel_{suffix}.mp4"
 
-    def get_comments(self, post: RedditPost) -> List[RedditComment]:
+    def get_comments(
+        self,
+        post: RedditPost,
+        sort_by_score: bool = False,
+        filter_duplicates: bool = True,
+    ) -> List[RedditComment]:
         """
         Get comments from the Reddit post. We are filtering out comments that are too long.
         Also we are sorting the comments by score descending.
 
         Args:
             post (RedditPost): The Reddit post object.
+            sort_by_score (bool): Whether to sort the comments by score.
+            filter_duplicates (bool): Whether to filter out duplicate comments.
         """
 
-        comments = sorted(
-            [
-                comment
-                for comment in post.comments
-                if comment.length <= self.MAX_COMMENT_LENGTH
-            ],
-            key=lambda x: x.score,
-            reverse=True,
-        )
+        comments = [
+            comment
+            for comment in post.comments
+            if comment.length <= self.MAX_COMMENT_LENGTH
+        ]
 
-        # Dedup comments
-        comments = self.filter_duplicate_comments(comments)
+        if sort_by_score:
+            comments = sorted(comments, key=lambda x: x.score, reverse=True)
+
+        if filter_duplicates:
+            comments = self.filter_duplicate_comments(comments)
 
         duration = 0
         processed_comments = []
@@ -257,10 +250,6 @@ class RedditCommentsPipeline(VideoPipeline):
                     output_path=comment.video_path,
                 )
 
-                logger.info(
-                    f"Comment {comment.comment_id} media generated successfully",
-                )
-
             except Exception as e:
                 logger.error(f"Error generating comment media: {e}")
                 logger.error(f"Error generating comment media: {comment}")
@@ -280,8 +269,10 @@ class RedditCommentsPipeline(VideoPipeline):
             if lang["lang_code"] == post.language
         ]
 
+        outro_text = outro[0]
+
         self.tts.generate_audio_clip(
-            text=outro[0],
+            text=outro_text,
             language=post.language,
             output_path=f"./assets/others/outros/outro_{post.language}_{self.SPEAKER.id}.mp3",
             speaker=self.SPEAKER.name,
@@ -298,7 +289,7 @@ class RedditCommentsPipeline(VideoPipeline):
             output_path=outro_output_path,
         )
 
-        return outro_output_path
+        return outro_output_path, outro_text
 
     def get_reddit_videos(
         self,
@@ -352,13 +343,14 @@ class RedditCommentsPipeline(VideoPipeline):
         videos = [
             MediaFile(**video)
             for video in json.load(open(settings.BACKGROUND_VIDEOS_JSON))
-            if MediaFile(**video).type == "gameplay"
+            if MediaFile(**video).type == "background"
+            and MediaFile(**video).topic == "gameplay"
         ]
 
         audios = [
             MediaFile(**audio)
             for audio in json.load(open(settings.BACKGROUND_AUDIOS_JSON))
-            if MediaFile(**audio).type == "gameplay"
+            if MediaFile(**audio).type == "background"
         ]
 
         video = next(
@@ -430,7 +422,8 @@ class RedditCommentsPipeline(VideoPipeline):
         post: RedditPost,
         background_video: str,
         reddit_videos: List[str],
-        captions: bool,
+        captions: CaptionStyle = None,
+        video_text: str = None,
     ) -> None:
         """
         Combine Reddit and Background videos into a single reel video.
@@ -439,7 +432,8 @@ class RedditCommentsPipeline(VideoPipeline):
             post (RedditPost): Reddit post object.
             background_video (str): Path to the background video.
             reddit_videos (List[str]): List of paths to the Reddit videos.
-            captions (bool): Whether to add captions to the video.
+            captions (CaptionStyle): Caption style object. Defaults to None.
+                If no captions is provided, no captions will be added.
         """
 
         # Combine Reddit and Background videos
@@ -449,23 +443,15 @@ class RedditCommentsPipeline(VideoPipeline):
             output_path=self.REEL_PATH.format(post_id=post.post_id, suffix="raw"),
         )
 
-        if captions:
-            subs_segments = self.stt.transcribe_audio(
+        if captions and video_text:
+
+            # Generate captions
+            self.stt.generate_captions(
                 input_file=self.REEL_PATH.format(post_id=post.post_id, suffix="raw"),
+                text=video_text,
                 language=post.language,
-            )
-
-            # Generate SRT file
-            self.stt.generate_srt_file(
-                segments=subs_segments,
-                input_file=self.REEL_PATH.format(post_id=post.post_id, suffix="raw"),
-                output_directory=f"assets/posts/{post.post_id}/",
-            )
-
-            # Transform SRT to ASS format
-            self.stt.srt_to_ass(
-                input_file=f"assets/posts/{post.post_id}/reel_raw.srt",
-                delete_srt=True,
+                output_file=f"assets/posts/{post.post_id}/reel_raw.ass",
+                style=self.captions,
             )
 
             # Add subtitle to video
@@ -475,7 +461,8 @@ class RedditCommentsPipeline(VideoPipeline):
                     post_id=post.post_id,
                     suffix="subtitled",
                 ),
-                subtitle_path=f"assets/posts/{post.post_id}/reel_raw.ass",
+                caption_path=f"assets/posts/{post.post_id}/reel_raw.ass",
+                font_path=self.captions.font_path,
             )
 
         extract_video_thumbnail(
@@ -528,7 +515,7 @@ class RedditCommentsPipeline(VideoPipeline):
         post = get_reddit_object(url)
         logger.info(f"Post retrieved: {post.title}")
 
-        comments = self.get_comments(post)
+        comments = self.get_comments(post, self.remove_duplicates, self.sort_by_score)
         logger.info(f"Retrieved {len(comments)} comments from the post.")
 
         # Take screenshots
@@ -542,7 +529,8 @@ class RedditCommentsPipeline(VideoPipeline):
         logger.info(f"Media generated for {len(comments)} comments.")
 
         # Generate media for outro
-        outro_path = self.generate_outro_media(post)
+        outro_path, outro_text = self.generate_outro_media(post)
+
         logger.info(f"Outro media generated at: {outro_path}")
 
         # Combine reddit videos
@@ -562,13 +550,29 @@ class RedditCommentsPipeline(VideoPipeline):
         )
 
         logger.info(f"Background video generated at: {background_video}")
+        video_text = "\n".join(
+            [post.title, post.body]
+            + [comment.body for comment in comments]
+            + [outro_text],
+        )
 
         # Combine all videos
         self.generate_reel_video(
             post=post,
             background_video=background_video,
             reddit_videos=reddit_videos,
-            captions=self.CAPTIONS,
+            captions=self.captions,
+            video_text=video_text if self.captions else None,
         )
 
         self.save_record(post)
+
+
+reddit_comments_pipeline = RedditCommentsPipeline(
+    captions=CaptionStyle(
+        fontname="Fira Sans",
+        fontsize=14,
+        alignment="bottom",
+        marginv=40,
+    ),
+)
