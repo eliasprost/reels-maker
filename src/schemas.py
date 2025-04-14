@@ -82,6 +82,7 @@ class MediaFile(BaseModel):
             ),
             "postprocessors": [],
             "format": "bestaudio/best" if self.file_type == "audio" else "bestvideo",
+            "verbose": False,
         }
 
         if self.file_type == "audio":
