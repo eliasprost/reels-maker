@@ -16,7 +16,7 @@ class SpeechToText:
     More info: https://github.com/jianfch/stable-ts
     """
 
-    def __init__(self, model_name: str = "large-v3"):
+    def __init__(self, model_name: str = "large-v3-turbo"):
         """
         See all available models at:
         - https://github.com/openai/whisper/blob/main/model-card.md#model-details
@@ -52,10 +52,7 @@ class SpeechToText:
 
         # Generate raw captions
         raw_caps = self.model.align(input_file, text, language=language)
-
-        # Refine
-        refined_caps = self.model.refine(input_file, raw_caps)
-        refined_caps.to_ass(
+        raw_caps.to_ass(
             output_file,
             segment_level=style.segment_level,
             word_level=style.word_levels,
