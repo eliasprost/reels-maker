@@ -21,7 +21,7 @@ from src.utils.reddit.post import get_reddit_object
 from src.utils.reddit.screenshot import take_comment_screenshot, take_post_screenshot
 
 
-class CommentsPipeline(RedditVideoPipeline):
+class RedditThreadPipeline(RedditVideoPipeline):
     """
     A class for creating videos from Reddit post comments.
     """
@@ -402,7 +402,7 @@ class CommentsPipeline(RedditVideoPipeline):
         self.save_record(post)
 
 
-reddit_comments_pipeline = CommentsPipeline(
+reddit_threads_pipeline = RedditThreadPipeline(
     CaptionStyle(
         fontname="Fira Sans",
         fontsize=22,
