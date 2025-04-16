@@ -138,17 +138,28 @@ class TextToSpeech:
 
                 try:
                     if separator:
-                        # Split the text into chunks using the separator
-                        splits = text.split(separator)
+                        raw_chunks = text.split(separator)
+                        splits = []
 
+                        for chunk in raw_chunks:
+                            chunk = chunk.strip()
+                            if len(chunk) > 200:
+                                # Use semantic chunker to split long chunk
+                                subsplits = [
+                                    subchunk.text.strip()
+                                    for subchunk in self.chunker.chunk(chunk)
+                                ]
+                                splits.extend(subsplits)
+                            else:
+                                splits.append(chunk)
                     else:
-                        # Split the text into chunks using the semantic chunker
+                        # Fallback to semantic chunking
                         splits = [
                             chunk.text.strip() for chunk in self.chunker.chunk(text)
                         ]
 
                     # Clean empty text from splits
-                    splits = [part.strip() for part in splits if part.strip() != ""]
+                    splits = [chunk.strip() for chunk in splits if chunk.strip() != ""]
 
                     # Get the file extension to mantain in the splits output path
                     _, extension = os.path.splitext(output_path)
