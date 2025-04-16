@@ -78,6 +78,7 @@ class TextToSpeech:
         speaker: str = "Abrahan Mack",
         speaker_wav: str = None,
         speed: float = 1.0,
+        separator: str = None,
     ) -> None:
         """
         Generate an audio clip from text
@@ -90,6 +91,8 @@ class TextToSpeech:
             speaker_wav: Path to the speaker reference audio file.
                 Default is None and the speaker is used.
             speed: Speed of the audio clip. Default is 1.0
+            separator: Separator to split the text into sentences. Default is None.
+                If no specified the text will be splitted using the semantic chunker
 
         """
 
@@ -134,11 +137,18 @@ class TextToSpeech:
                 processed_files = []
 
                 try:
-                    # Split the text into chunks using the semantic chunker
-                    splits = [chunk.text.strip() for chunk in self.chunker.chunk(text)]
+                    if separator:
+                        # Split the text into chunks using the separator
+                        splits = text.split(separator)
+
+                    else:
+                        # Split the text into chunks using the semantic chunker
+                        splits = [
+                            chunk.text.strip() for chunk in self.chunker.chunk(text)
+                        ]
 
                     # Clean empty text from splits
-                    splits = [part for part in splits if part.strip() != ""]
+                    splits = [part.strip() for part in splits if part.strip() != ""]
 
                     # Get the file extension to mantain in the splits output path
                     _, extension = os.path.splitext(output_path)
