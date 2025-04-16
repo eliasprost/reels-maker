@@ -6,7 +6,13 @@ from typing import List, Literal
 
 import ffmpeg
 from loguru import logger
-from moviepy.editor import CompositeVideoClip, VideoFileClip, concatenate_videoclips
+from moviepy.editor import (
+    AudioFileClip,
+    ColorClip,
+    CompositeVideoClip,
+    VideoFileClip,
+    concatenate_videoclips,
+)
 
 from src.config import settings
 from src.utils.media.audio import get_audio_duration
@@ -408,7 +414,10 @@ def overlay_videos(
         background_video (str): Path to the background video file.
         overlay_videos (List[str]): List of paths to overlay video files.
             You can pas a 'GAP:<duration>' placeholder to create a space of the specified duration.
-            Example: ['video_1.mp4', 'GAP:5.23', 'video_2.mp4'].
+                Example: ['video_1.mp4', 'GAP:5.23', 'video_2.mp4'].
+            Also, you can pass audio files (mp3, wav) to add a gap with the audio duration. The
+            audio will be added to the background video.
+                Example: ['video_1.mp4', 'audio_1.mp3', 'video_2.mp4'].
         output_path (str): Path to save the output video file.
         position (str, optional): Desired alignment for the overlay videos within the available
             area. Accepted: "center", "left", "right", "top", and "bottom". Default is "center".
@@ -444,6 +453,13 @@ def overlay_videos(
             except Exception as e:
                 logger.error(f"Invalid gap format: {video_path} ({e})")
                 continue
+
+        # Check if is an audio file
+        if video_path.endswith(".mp3") or video_path.endswith(".wav"):
+            gap_duration = get_audio_duration(video_path)
+            overlay_durations.append(gap_duration)
+            total_overlay_duration += gap_duration
+            continue
 
         try:
             clip = VideoFileClip(video_path)
@@ -529,6 +545,21 @@ def overlay_videos(
         # Skip if the video path is a placeholder for a gap
         if video_path.startswith("GAP:"):
             current_time += overlay_durations[i]
+            continue
+
+        # Add a transparent placeholder video if is an audio file
+        # Check if is an audio file
+        if video_path.endswith(".mp3") or video_path.endswith(".wav"):
+            audio_clip = AudioFileClip(video_path)
+            duration = audio_clip.duration
+            placeholder_clip = (
+                ColorClip(size=(10, 10), color=(0, 0, 0), duration=duration)
+                .set_opacity(0)
+                .set_audio(audio_clip)
+                .set_start(current_time)
+            )
+            overlay_clips.append(placeholder_clip)
+            current_time += duration
             continue
 
         try:
