@@ -53,7 +53,6 @@ class RedditVideoPipeline(ABC):
     def generate_outro_media(
         self,
         post: RedditPost,
-        audio_speed: float,
         speaker: Speaker,
     ) -> None:
         """
@@ -61,7 +60,6 @@ class RedditVideoPipeline(ABC):
 
         Args:
             post (RedditPost): The post to generate outro media for.
-            audio_speed (float): The speed of the audio.
             speaker (Speaker): The speaker to use for the audio.
         """
 
@@ -78,7 +76,7 @@ class RedditVideoPipeline(ABC):
             language=post.language,
             output_path=f"./assets/others/outros/outro_{post.language}_{speaker.id}.mp3",
             speaker=speaker.name,
-            speed=audio_speed,
+            speed=1.2,  # Fix the outro speed to 1.2
         )
 
         outro_output_path = (
