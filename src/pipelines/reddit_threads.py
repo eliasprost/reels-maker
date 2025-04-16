@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from src.config import settings
 from src.pipelines.schemas import RedditVideoPipeline
-from src.schemas import CaptionStyle, RedditComment, RedditPost
+from src.schemas import CaptionStyle, RedditComment, RedditPost, Speaker
 from src.utils.media.audio import concatenate_audio_files, get_audio_duration
 from src.utils.media.video import (
     add_captions,
@@ -56,6 +56,7 @@ class RedditThreadPipeline(RedditVideoPipeline):
         self.sort_by_score = sort_by_score
         self.theme = theme
         self.audio_speed = audio_speed
+        self.speaker = Speaker(name=speaker)
         self.max_comment_length = max_comment_length
         self.silence_duration = silence_duration
 
@@ -358,7 +359,6 @@ class RedditThreadPipeline(RedditVideoPipeline):
         # Generate media for outro
         outro_path, outro_text = self.generate_outro_media(
             post,
-            audio_speed=self.audio_speed,
             speaker=self.speaker,
         )
         logger.info(f"Outro media generated at: {outro_path}")
@@ -412,7 +412,6 @@ reddit_threads_pipeline = RedditThreadPipeline(
         secondarycolor=(255, 255, 255, 1),
         outlinecolor=(30, 30, 30, 1),
         bold=True,
-        italic=True,
         word_levels=True,
         segment_level=False,
         outline=2,
