@@ -22,7 +22,7 @@ from src.utils.media.video import (
 )
 
 
-class VideoPipeline(ABC):
+class RedditVideoPipeline(ABC):
     """
     A base class for creating videos.
     """
@@ -213,7 +213,7 @@ class VideoPipeline(ABC):
         """
 
         with open(settings.PROCESSED_VIDEOS_CSV, "a", newline="") as csvfile:
-            fieldnames = ["post_id", "title", "url", "timestamp"]
+            fieldnames = ["post_id", "title", "url", "timestamp", "pipeline"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
             # Write header if the file is empty
@@ -226,7 +226,7 @@ class VideoPipeline(ABC):
                     "title": post.title,
                     "url": post.url,
                     "timestamp": datetime.now().strftime("%Y-%m-%d:%H:%M:%S"),
-                    "pipeline": self.pipeline_name,
+                    "pipeline": self.name,
                 },
             )
 
