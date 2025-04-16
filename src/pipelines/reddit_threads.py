@@ -403,7 +403,7 @@ class RedditThreadPipeline(RedditVideoPipeline):
 
 
 reddit_threads_pipeline = RedditThreadPipeline(
-    CaptionStyle(
+    captions=CaptionStyle(
         fontname="Fira Sans",
         fontsize=22,
         alignment="bottom",
