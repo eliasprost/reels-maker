@@ -407,6 +407,8 @@ def overlay_videos(
     Args:
         background_video (str): Path to the background video file.
         overlay_videos (List[str]): List of paths to overlay video files.
+            You can pas a 'GAP:<duration>' placeholder to create a space of the specified duration.
+            Example: ['video_1.mp4', 'GAP:5.23', 'video_2.mp4'].
         output_path (str): Path to save the output video file.
         position (str, optional): Desired alignment for the overlay videos within the available
             area. Accepted: "center", "left", "right", "top", and "bottom". Default is "center".
@@ -432,6 +434,17 @@ def overlay_videos(
     overlay_durations = []
 
     for video_path in overlay_videos:
+        # Check if the video path is a gap (e.g., "GAP:5")
+        if video_path.startswith("GAP:"):
+            try:
+                gap_duration = float(video_path.split(":")[1])
+                overlay_durations.append(gap_duration)
+                total_overlay_duration += gap_duration
+                continue
+            except Exception as e:
+                logger.error(f"Invalid gap format: {video_path} ({e})")
+                continue
+
         try:
             clip = VideoFileClip(video_path)
             overlay_durations.append(clip.duration)
@@ -512,6 +525,12 @@ def overlay_videos(
     current_time = 0  # Start time offset for sequential playback
 
     for i, video_path in enumerate(overlay_videos):
+
+        # Skip if the video path is a placeholder for a gap
+        if video_path.startswith("GAP:"):
+            current_time += overlay_durations[i]
+            continue
+
         try:
             clip = VideoFileClip(video_path)
             clip_fps = clip.fps if clip.fps else bg_fps
