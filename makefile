@@ -17,7 +17,7 @@ install-dev:
 .PHONY: start
 start:
 	@echo "Running the main script using UV"
-	uv run python3 -m src.main --link $(link)
+	uv run python3 -m src.main
 
 .PHONY: download
 download:
