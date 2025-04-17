@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Literal
 
 import ffmpeg
+import pysubs2
 from loguru import logger
 from moviepy.editor import (
     AudioFileClip,
@@ -707,3 +708,31 @@ def extract_video_thumbnail(video_path: str, output_path: str, time: int = 1):
     except ffmpeg.Error as e:
         logger.error(f"Error extracting video thumbnail: {e.stderr.decode()}")
         raise e
+
+
+def shift_caption_start(
+    input_file: str,
+    start_time: float,
+    output_file: str = None,
+) -> None:
+    """
+    Moves the first dialogue to a new start time, mantaining the rest of the dialogues in
+    the same order and duration.
+
+    Args:
+        input_file (str): Path to the input ASS file.
+        start_time (float): Time in seconds to set as start time of the first line.
+        output_file (str): Path to the output ASS file. Default is None.
+            If None, the input file will be overwritten.
+    """
+
+    subs = pysubs2.load(input_file)
+
+    # Standarize start dialogue to be at 0.0 ms
+    subs.shift(ms=-subs[0].start)
+
+    # # Shift to start with the new start time
+    subs.shift(ms=start_time * 1000)
+
+    # Save
+    subs.save(output_file if output_file else input_file)
