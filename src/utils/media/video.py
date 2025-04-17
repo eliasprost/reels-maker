@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import random
+import tempfile
 from pathlib import Path
 from typing import List, Literal
 
@@ -13,6 +14,7 @@ from moviepy.editor import (
     CompositeVideoClip,
     VideoFileClip,
     concatenate_videoclips,
+    vfx,
 )
 
 from src.config import settings
@@ -708,6 +710,45 @@ def extract_video_thumbnail(video_path: str, output_path: str, time: int = 1):
     except ffmpeg.Error as e:
         logger.error(f"Error extracting video thumbnail: {e.stderr.decode()}")
         raise e
+
+
+def add_fade_out(input_path: str, fade_duration: float = 1.5, output_path: str = None):
+    """
+    Adds a fade-to-black effect at the end of a video using moviepy.
+
+    Args:
+        input_path (str): Path to input video.
+        fade_duration (float): Duration (in seconds) of the fade effect. Default is 1.5.
+        output_path (str): Path to save the output video. Default is None.
+            If None, it will overwrite the input video.
+    """
+    clip = VideoFileClip(input_path)
+    faded = clip.fx(vfx.fadeout, duration=fade_duration)
+
+    # Determine where to write
+    if output_path:
+        target = output_path
+    else:
+        # temp file in same directory
+        base, ext = os.path.splitext(input_path)
+        tmp = tempfile.NamedTemporaryFile(
+            dir=settings.TEMP_PATH,
+            prefix=os.path.basename(base) + "_fade_",
+            suffix=ext,
+            delete=False,
+        )
+        tmp.close()
+        target = tmp.name
+
+    # Write out
+    faded.write_videofile(target, codec="libx264", audio_codec="aac")
+
+    # If no explicit output, replace original
+    if output_path is None:
+        os.replace(target, input_path)
+
+    clip.close()
+    faded.close()
 
 
 def shift_caption_start(
