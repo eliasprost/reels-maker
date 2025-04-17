@@ -3,12 +3,13 @@ import json
 import os
 import random
 from pathlib import Path
-from typing import ClassVar, List, Literal, Optional
+from typing import ClassVar, List, Literal, Optional, Tuple
 
 import langid
 import yt_dlp
 from loguru import logger
 from pydantic import BaseModel, field_validator, model_validator
+from pysubs2 import Color
 
 from src.utils.path import create_file_folder
 
@@ -18,7 +19,8 @@ class MediaFile(BaseModel):
     url: str
     file_name: str
     author: str
-    type: Literal["background", "others"] = "others"
+    type: Literal["background", "other"] = "other"
+    topic: Literal["gameplay", "satisfying", "relaxing", "other"] = "other"
     path: Optional[str] = None
 
     _file_mapping: ClassVar[dict] = json.load(open("data/file_mapping.json"))
@@ -37,8 +39,10 @@ class MediaFile(BaseModel):
         super().__init__(**data)
         if self.path is None:  # If user doesn't provide a path, generate a default one
             self.path = os.path.join(
-                f"./assets/{self.type.lower()}",
+                "./assets",
+                self.type.lower(),
                 self.file_type,
+                self.topic.lower(),
                 self.file_name,
             )
 
@@ -78,6 +82,7 @@ class MediaFile(BaseModel):
             ),
             "postprocessors": [],
             "format": "bestaudio/best" if self.file_type == "audio" else "bestvideo",
+            "verbose": False,
         }
 
         if self.file_type == "audio":
@@ -239,3 +244,67 @@ class Speaker(BaseModel):
     @property
     def gender(self) -> str:
         return self.accepted_speakers[self.name]
+
+
+class CaptionStyle(BaseModel):
+    """
+    Wrapper to handle the V4 style of ASS captions.
+    You can add more parameters, using the original name (http://www.tcax.org/docs/ass-specs.htm).
+
+    If you want to add a custom font that is not installed in your system, you need to add it to
+    the the project before. Add it to the fonts folder: 'assets/fonts' before.
+    """
+
+    # pysub2 properties
+    fontname: Optional[str] = "Arial"
+    fontsize: Optional[int] = 12
+    alignment: Optional[Literal["bottom", "middle", "top"]] = "bottom"
+    primarycolor: Optional[Tuple[int, int, int, int]] = (197, 241, 79, 1)
+    secondarycolor: Optional[Tuple[int, int, int, int]] = (255, 255, 255, 1)
+    outlinecolor: Optional[Tuple[int, int, int, int]] = (0, 0, 0, 10)
+    backcolor: Optional[Tuple[int, int, int, int]] = (0, 0, 0, 10)
+    bold: Optional[bool] = True
+    italic: Optional[bool] = False
+    outline: Optional[int] = 1
+    shadow: Optional[int] = 0
+
+    # External properties
+    segment_level: Optional[bool] = True
+    word_levels: Optional[bool] = True
+
+    @property
+    def font_path(self) -> str:
+        return f"assets/fonts/{self.fontname.replace(' ', '_')}"
+
+    @model_validator(mode="after")
+    @classmethod
+    def update_color(cls, model: "CaptionStyle") -> "CaptionStyle":
+        """
+        Update color parameters to use pysubs2 Color class.
+        """
+        for field_name, value in model.model_dump().items():
+            if "color" in field_name and isinstance(value, (list, tuple)):
+                setattr(model, field_name, Color(*value))
+
+        return model
+
+    @model_validator(mode="after")
+    @classmethod
+    def update_alignment(cls, model: "CaptionStyle") -> "CaptionStyle":
+        """
+        Update a natural language string to a number for alignment.
+        """
+        if model.alignment == "bottom":
+            model.alignment = 2
+        elif model.alignment == "middle":
+            model.alignment = 5
+        elif model.alignment == "top":
+            model.alignment = 8
+        else:
+            raise ValueError(
+                "Invalid alignment value, must be 'bottom', 'middle' or 'top'",
+            )
+
+        return model
+
+    model_config = {"extra": "allow"}

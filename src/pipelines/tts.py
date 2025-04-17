@@ -25,8 +25,7 @@ class TextToSpeech:
         max_length=200,
     ):
         """
-        See all available models at:
-        - https://github.com/coqui-ai/TTS?tab=readme-ov-file#models
+        See all available models at by running `tts --list_models`
 
         Args:
             model_name (str, optional): Model name.
@@ -38,10 +37,11 @@ class TextToSpeech:
         self.languages = json.load(open("./data/languages.json"))
         self.max_length = max_length
         self.chunker = SemanticChunker(
-            embedding_model="all-MiniLM-L6-v2",
+            embedding_model="sentence-transformers/all-MiniLM-L6-v2",
             chunk_size=int(self.max_length / 5),
-            threshold=0.7,
-            min_chunk_size=10,
+            min_chunk_size=int(self.max_length / 6),
+            min_sentences=2,
+            threshold=0.8,
         )
 
     def sanitize_text(self, text: str) -> str:
@@ -57,8 +57,10 @@ class TextToSpeech:
 
         # remove any urls from the text
         regex_urls = r"((http|https)\:\/\/)?[a-zA-Z0-9\.\/\?\:@\-_=#]+\.([a-zA-Z]){2,6}([a-zA-Z0-9\.\&\/\?\:@\-_=#])*"  # noqa: E501
-
         result = re.sub(regex_urls, " ", text)
+
+        # normalize Brazilian laughs
+        result = re.sub(r"\b[kK]{4,}\b", "kkk", result)
 
         # note: not removing apostrophes
         regex_expr = r"\s['|’]|['|’]\s|[\^_~@!&;#:\-%—“”‘\"%\*/{}\[\]\(\)\\|<>=+]"
@@ -74,7 +76,9 @@ class TextToSpeech:
         output_path: str,
         language: str,
         speaker: str = "Abrahan Mack",
+        speaker_wav: str = None,
         speed: float = 1.0,
+        separator: str = None,
     ) -> None:
         """
         Generate an audio clip from text
@@ -84,7 +88,11 @@ class TextToSpeech:
             output_path: Path to save the audio clip
             language: Language of the text.
             speaker: Speaker to use for the audio clip. Default is "Abrahan Mack".
+            speaker_wav: Path to the speaker reference audio file.
+                Default is None and the speaker is used.
             speed: Speed of the audio clip. Default is 1.0
+            separator: Separator to split the text into sentences. Default is None.
+                If no specified the text will be splitted using the semantic chunker
 
         """
 
@@ -114,8 +122,10 @@ class TextToSpeech:
                     text=sanitized_text,
                     language=language,
                     file_path=output_path,
-                    speaker=speaker,
+                    speaker=speaker if not speaker_wav else None,
+                    speaker_wav=speaker_wav,
                     speed=speed,
+                    split_sentences=False,
                 )
                 end = time.time()
 
@@ -127,11 +137,29 @@ class TextToSpeech:
                 processed_files = []
 
                 try:
-                    # Split the text into chunks using the semantic chunker
-                    splits = [chunk.text for chunk in self.chunker.chunk(text)]
+                    if separator:
+                        raw_chunks = text.split(separator)
+                        splits = []
+
+                        for chunk in raw_chunks:
+                            chunk = chunk.strip()
+                            if len(chunk) > 200:
+                                # Use semantic chunker to split long chunk
+                                subsplits = [
+                                    subchunk.text.strip()
+                                    for subchunk in self.chunker.chunk(chunk)
+                                ]
+                                splits.extend(subsplits)
+                            else:
+                                splits.append(chunk)
+                    else:
+                        # Fallback to semantic chunking
+                        splits = [
+                            chunk.text.strip() for chunk in self.chunker.chunk(text)
+                        ]
 
                     # Clean empty text from splits
-                    splits = [part for part in splits if part.strip() != ""]
+                    splits = [chunk.strip() for chunk in splits if chunk.strip() != ""]
 
                     # Get the file extension to mantain in the splits output path
                     _, extension = os.path.splitext(output_path)
@@ -151,8 +179,10 @@ class TextToSpeech:
                                 temp_folder,
                                 f"_temp_split_{idx}{extension}",
                             ),
-                            speaker=speaker,
+                            speaker=speaker if not speaker_wav else None,
+                            speaker_wav=speaker_wav,
                             speed=speed,
+                            split_sentences=False,
                         )
                         end = time.time()
                         processed_files.append(
@@ -181,9 +211,12 @@ class TextToSpeech:
             raise (e)
 
 
+tts_pipeline = TextToSpeech()
+
+
 @st.cache_resource
 def get_text_to_speech():
     """
     Create and cache a SpeechToText instance to use in Streamlit with cache.
     """
-    return TextToSpeech()
+    return tts_pipeline

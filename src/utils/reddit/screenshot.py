@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 import json
 import os
-from typing import Literal, Tuple
+from typing import List, Literal, Tuple
 
 from loguru import logger
 from PIL import Image
-from playwright.async_api import Browser, BrowserContext, TimeoutError, async_playwright
+from playwright.async_api import Browser, BrowserContext, async_playwright
 
 from src.config import settings
-from src.schemas import RedditComment, RedditPost
+from src.schemas import RedditComment
 
 
 async def login_reddit(context: BrowserContext, timeout: int = 5000) -> BrowserContext:
@@ -102,30 +102,6 @@ async def build_browser_context(
     return page, browser
 
 
-async def take_post_screenshot(
-    post: RedditPost,
-    theme: Literal["dark", "light"] = "light",
-) -> None:
-    """
-    Take and save a screenshot of the main post in a Reddit post/thread
-
-    Args:
-        post: RedditPost object
-        theme: "light" or "dark" mode
-    """
-
-    # Check if file exists
-    if os.path.exists(post.image_path):
-        logger.info(f"Main post screenshot already exists: {post.image_path}")
-        return
-
-    async with async_playwright() as p:
-        context, browser = await build_browser_context(p, theme=theme, url=post.url)
-        await context.locator("shreddit-post").screenshot(path=post.image_path)
-        logger.info(f"Main post screenshot saved to: {post.image_path}")
-        await browser.close()
-
-
 def join_images_vertically(image_paths: list, output_path: str) -> None:
     """
     Combine multiple images vertically into a single image.
@@ -149,8 +125,88 @@ def join_images_vertically(image_paths: list, output_path: str) -> None:
     logger.info(f"Combined image saved to: {output_path}")
 
 
+async def take_post_screenshot(
+    post,
+    elements: List[
+        Literal["header", "title", "content", "action_row"]
+    ] = [  # noqa: B006
+        "header",
+        "title",
+        "content",
+        "action_row",
+    ],
+    theme: Literal["dark", "light"] = "light",
+    timeout: int = 5000,
+) -> None:
+    """
+    Take and save a screenshot of the main post in a Reddit post/thread.
+
+    Args:
+        post: RedditPost object
+        elements: List of elements to include in the screenshot
+        theme: "light" or "dark" mode
+        timeout: Timeout in milliseconds. Default is 5000
+    """
+
+    if os.path.exists(post.image_path):
+        logger.info(f"Post screenshot already exists: {post.image_path}")
+        return
+
+    async with async_playwright() as p:
+        page, browser = await build_browser_context(p, theme=theme, url=post.url)
+
+        # Locate elements
+        header = page.locator('div[slot="credit-bar"]').first  # noqa: F841
+        title = page.locator('h1[slot="title"]').first  # noqa: F841
+
+        try:
+            content = page.locator(  # noqa: F841
+                'div[class="text-neutral-content"][slot="text-body"]',
+            ).first
+
+        except Exception as e:
+            logger.warning(f"The post content is inexistent or not visible: {e}")
+
+        action_row = page.locator(  # noqa: F841
+            'div[class="shreddit-post-container flex gap-sm flex-row items-center flex-nowrap justify-start h-2xl mt-md px-md xs:px-0"]',  # noqa: E501
+        ).first
+
+        # Take screenshots
+        screenshots = []
+        for element in elements:
+            path = post.image_path.replace(".png", f"_{element}.png")
+            locator = eval(element)
+
+            if locator:
+                try:
+                    await locator.screenshot(path=path, timeout=timeout)
+                    screenshots.append(path)
+
+                except Exception as e:
+                    logger.warning(f"Failed to take screenshot of {element}: {e}.")
+                    continue
+
+        if screenshots:
+            # Combine the screenshots vertically
+            join_images_vertically(screenshots, post.image_path)
+
+            # Remove part files
+            for path in screenshots:
+                if os.path.exists(path):
+                    os.remove(path)
+
+            logger.info(f"Post screenshot saved to: {post.image_path}")
+
+        await browser.close()
+
+
 async def take_comment_screenshot(
     comment: RedditComment,
+    elements: List[Literal["header", "content", "action_row"]] = [  # noqa: B006
+        "header",
+        "content",
+        "action_row",
+    ],  # noqa: B006
     theme: Literal["dark", "light"] = "light",
     timeout: int = 5000,
 ) -> None:
@@ -159,6 +215,7 @@ async def take_comment_screenshot(
 
     Args:
         comment: RedditComment object
+        elements: List of elements to include in the screenshot
         theme: "light" or "dark" mode
         timeout: Timeout in milliseconds. Default is 5000
     """
@@ -171,52 +228,70 @@ async def take_comment_screenshot(
         page, browser = await build_browser_context(p, theme=theme, url=comment.url)
 
         # Locate the target comment elements
-        comment_header = page.get_by_label(
+        header = page.get_by_label(
             f"Metadata for {comment.author}'s comment",
         ).first
 
         # Attempt to locate the content and action row within the specified timeout
         # This is to deal with not fully displayed comments
         try:
-            comment_content = await page.wait_for_selector(
+            content = await page.wait_for_selector(  # noqa: F841
                 'div[class="md text-14 rounded-[8px] pb-2xs overflow-hidden"][slot="comment"]',
                 timeout=timeout,
             )
-            action_row = await page.wait_for_selector(
-                f'shreddit-comment-action-row[slot="actionRow"][permalink="{comment.permalink}"]',
-                timeout=timeout,
-            )
-        except TimeoutError:
-            logger.info("Comment content not visible, clicking header to expand.")
-            await comment_header.click()
-
-            # Retry locating the content and action row after expanding
-            comment_content = await page.wait_for_selector(
-                'div[class="md text-14 rounded-[8px] pb-2xs overflow-hidden"][slot="comment"]',
-                timeout=timeout,
-            )
-            action_row = await page.wait_for_selector(
+            action_row = await page.wait_for_selector(  # noqa: F841
                 f'shreddit-comment-action-row[slot="actionRow"][permalink="{comment.permalink}"]',
                 timeout=timeout,
             )
 
-        # Take individual screenshots
-        header_path = comment.image_path.replace(".png", "_header.png")
-        content_path = comment.image_path.replace(".png", "_content.png")
-        action_row_path = comment.image_path.replace(".png", "_action_row.png")
+        except Exception:
 
-        await comment_header.screenshot(path=header_path)
-        await comment_content.screenshot(path=content_path)
-        await action_row.screenshot(path=action_row_path)
+            logger.info("Clicking header to expand.")
+            await header.click()
+
+            try:
+                # Retry locating the content and action row after expanding
+                content = await page.wait_for_selector(  # noqa: F841
+                    'div[class="md text-14 rounded-[8px] pb-2xs overflow-hidden"][slot="comment"]',
+                    timeout=timeout,
+                )
+
+            except Exception as e:
+                logger.warning(f"Comment content still not visible, skipping. {e}")
+
+            try:
+                action_row = await page.wait_for_selector(  # noqa: F841
+                    f'shreddit-comment-action-row[slot="actionRow"][permalink="{comment.permalink}"]',  # noqa: E501
+                    timeout=timeout,
+                )
+
+            except Exception as e:
+                logger.warning(f"Comment action row still not visible, skipping. {e}")
+
+        # Take screenshots
+        screenshots = []
+        for element in elements:
+            path = comment.image_path.replace(".png", f"_{element}.png")
+            locator = eval(element)
+            if locator:
+                try:
+                    await locator.screenshot(path=path)
+                    screenshots.append(path)
+
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to take screenshot of {element}, skipping. {e}",
+                    )
+                    continue
 
         # Combine the screenshots vertically
         join_images_vertically(
-            [header_path, content_path, action_row_path],
+            screenshots,
             comment.image_path,
         )
 
         # Remove part files if they exist
-        for path in [header_path, content_path, action_row_path]:
+        for path in screenshots:
             if os.path.exists(path):
                 os.remove(path)
 

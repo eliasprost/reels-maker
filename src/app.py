@@ -413,8 +413,8 @@ if (
     st.write("Download all background media from your pool if you haven't already.")
     st.info(
         """
-        You can add more media to your pool by adding them into the _background_audios.json_ and
-        _background_videos.json_ files in the data folder.
+        You can add more media to your pool by adding them into the data/audios.json and
+        data/videos.json files in the data folder.
         """,
         icon="ℹ️",
     )
@@ -428,11 +428,11 @@ if (
     st.write("Select a background video and audio.")
 
     background_audios = [
-        MediaFile(**audio) for audio in json.load(open("./data/background_audios.json"))
+        MediaFile(**audio) for audio in json.load(open(settings.BACKGROUND_AUDIOS_JSON))
     ]
 
     background_videos = [
-        MediaFile(**video) for video in json.load(open("./data/background_videos.json"))
+        MediaFile(**video) for video in json.load(open(settings.BACKGROUND_VIDEOS_JSON))
     ]
 
     # Set media select options
@@ -615,7 +615,7 @@ if (
             add_captions(
                 input_file=REEL_PATH.format(post_id=post.post_id, suffix="raw"),
                 output_file=REEL_PATH.format(post_id=post.post_id, suffix="subtitled"),
-                subtitle_path=f"assets/posts/{post.post_id}/reel_raw.ass",
+                caption_path=f"assets/posts/{post.post_id}/reel_raw.ass",
             )
 
     with st.spinner("Extracting video thumbnail..."):

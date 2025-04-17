@@ -2,6 +2,7 @@
 import os
 import random
 from pathlib import Path
+from typing import List
 
 import ffmpeg
 from loguru import logger
@@ -25,6 +26,7 @@ def generate_silence(duration: float, output_path: str) -> None:
     ffmpeg.input("anullsrc=r=44100:cl=stereo", f="lavfi").output(
         output_path,
         t=duration,
+        loglevel="quiet",
     ).run(overwrite_output=True)
 
 
@@ -42,7 +44,7 @@ def get_audio_duration(file_path: str, round_value: bool = True) -> float:
 
 
 def concatenate_audio_files(
-    files: list,
+    files: List[str],
     silence_duration: float = 0.2,
     output_file: str = "result.mp3",
 ) -> None:
@@ -76,7 +78,9 @@ def concatenate_audio_files(
 
     # Concatenate the inputs
     try:
-        ffmpeg.concat(*inputs, v=0, a=1).output(output_file).run(overwrite_output=True)
+        ffmpeg.concat(*inputs, v=0, a=1).output(output_file, loglevel="quiet").run(
+            overwrite_output=True,
+        )
         logger.info(f"Audio files concatenated to {output_file}")
     except ffmpeg.Error as e:
         logger.error(f"ffmpeg error: {e.stderr.decode('utf8')}")
@@ -159,6 +163,7 @@ def cut_audio(
                 format="mp3",
                 acodec="libmp3lame",
                 qscale=2,
+                loglevel="quiet",
             )
             .overwrite_output()
             .run()

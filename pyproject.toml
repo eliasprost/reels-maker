@@ -19,7 +19,6 @@ dependencies = [
   "watchdog>=6.0.0",
   "ffmpeg-python==0.2.0",
   "pillow==9.5.0",
-  "openai-whisper==20240930",
   "pysubs2==1.8.0",
   "srt==3.5.3",
   "pytrends>=4.9.2",
@@ -39,6 +38,7 @@ dependencies = [
   "rank-bm25>=0.2.2",
   "unidic>=1.1.0",
   "chonkie[semantic]>=0.5.1",
+  "stable-ts[hf]>=2.19.0",
 ]
 
 [dependency-groups]

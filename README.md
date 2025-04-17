@@ -110,20 +110,17 @@ Follow these steps to set up the project:
     - After making changes to the `.env` file, refresh the environment variables by running `source .env` in the terminal.
 
 ## Run
-run `make start` in your terminal and insert the reddit post link.
-```bash
-make start link={put your reddit post link here}
-```
+run `make start` in your terminal to run the interactive script.
 The generated contet will be saved in the `assets` folder.
 
 ## Background media:
-If you want to add more background media, you can do so by adding YouTube links to the `data/background_audios.json` and `data/background_videos.json`. If you want to download all background media in one go, you can use the `download_background_media.py` by running the makefile command: `make download`.
+If you want to add more background media, you can do so by adding YouTube links to the `data/audios.json` and `data/videos.json`. If you want to download all background media in one go, you can use the `download_background_media.py` by running the makefile command: `make download`.
 
 ## Makefile available commands
+- Run `make start` to run the main script.
+- Run `make app` to start the Streamlit app.
 - Run `make install-dev` to install the project dev dependencies.
 - Run `make download` to download all the background media in one go.
-- Run `make start` to run the script.
-- Run `make app` to start the Streamlit app.
 
 ## Contributing
 Contributions are welcome!  Please submit pull requests with your proposed changes.
