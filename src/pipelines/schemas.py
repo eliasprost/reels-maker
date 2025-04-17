@@ -76,7 +76,7 @@ class RedditVideoPipeline(ABC):
             language=post.language,
             output_path=f"./assets/others/outros/outro_{post.language}_{speaker.id}.mp3",
             speaker=speaker.name,
-            speed=1.2,  # Fix the outro speed to 1.2
+            speed=1.3,  # Fix the outro speed to 1.3
         )
 
         outro_output_path = (
