@@ -2,6 +2,7 @@
 import os
 import random
 from pathlib import Path
+from typing import List
 
 import ffmpeg
 from loguru import logger
@@ -43,7 +44,7 @@ def get_audio_duration(file_path: str, round_value: bool = True) -> float:
 
 
 def concatenate_audio_files(
-    files: list,
+    files: List[str],
     silence_duration: float = 0.2,
     output_file: str = "result.mp3",
 ) -> None:
