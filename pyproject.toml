@@ -26,7 +26,6 @@ dependencies = [
   "torch==2.6.0",
   "torchvision>=0.21.0",
   "torchaudio>=2.6.0",
-  "coqui-tts==0.26.0",
   "accelerate==1.4.0",
   "numpy==1.26.4",
   "moviepy==1.0.3",
@@ -37,8 +36,8 @@ dependencies = [
   "faiss-cpu>=1.10.0",
   "rank-bm25>=0.2.2",
   "unidic>=1.1.0",
-  "chonkie[semantic]>=0.5.1",
-  "stable-ts[hf]>=2.19.0",
+  "stable-ts>=2.19.0",
+  "edge-tts==7.0.0",
 ]
 
 [dependency-groups]
