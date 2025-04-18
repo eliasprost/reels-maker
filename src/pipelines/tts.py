@@ -2,15 +2,15 @@
 import json
 import os
 import re
+import tempfile
 import time
 
+import edge_tts
+import ffmpeg
 import streamlit as st
-import torch
-from chonkie import SemanticChunker
 from loguru import logger
-from TTS.api import TTS
 
-from src.utils.media.audio import concatenate_audio_files, generate_silence
+from src.schemas import Speaker
 from src.utils.path import create_file_folder
 
 
@@ -21,28 +21,11 @@ class TextToSpeech:
 
     def __init__(
         self,
-        model_name="tts_models/multilingual/multi-dataset/xtts_v2",
-        max_length=200,
     ):
         """
         See all available models at by running `tts --list_models`
-
-        Args:
-            model_name (str, optional): Model name.
-                Defaults to "tts_models/multilingual/multi-dataset/xtts_v2".
-            max_length (int, optional): Maximum length of the text to be processed. Defaults to 200.
         """
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = TTS(model_name=model_name, progress_bar=False).to(self.device)
         self.languages = json.load(open("./data/languages.json"))
-        self.max_length = max_length
-        self.chunker = SemanticChunker(
-            embedding_model="sentence-transformers/all-MiniLM-L6-v2",
-            chunk_size=int(self.max_length / 5),
-            min_chunk_size=int(self.max_length / 6),
-            min_sentences=2,
-            threshold=0.8,
-        )
 
     def sanitize_text(self, text: str) -> str:
         """
@@ -70,15 +53,81 @@ class TextToSpeech:
 
         return result[:-1] if result.endswith(".") else result
 
+    def speedup_audio(
+        self,
+        input_path: str,
+        speed: float,
+        output_path: str = None,
+    ) -> None:
+        """
+        Speed up an audio file using ffmpeg.
+
+        Args:
+            input_path (str): Path to the input audio file.
+            speed (float): Speed factor (e.g., 1.3 for 30% faster).
+            output_path (str): Path to the output audio file.
+                If None, overwrite the input file safely.
+        """
+
+        def _build_atempo_chain(speed):
+            filters = []
+            while speed > 2.0:
+                filters.append("atempo=2.0")
+                speed /= 2.0
+            while speed < 0.5:
+                filters.append("atempo=0.5")
+                speed *= 2.0
+            filters.append(f"atempo={speed}")
+            return ",".join(filters)
+
+        atempo_filter = _build_atempo_chain(speed)
+
+        if output_path is None:
+            # Create temp file in the same directory as input
+            input_dir = os.path.dirname(input_path) or "."
+            with tempfile.NamedTemporaryFile(
+                suffix=".mp3",
+                dir=input_dir,
+                delete=False,
+            ) as tmp_file:
+                temp_path = tmp_file.name
+
+            try:
+                # Process to temp file
+                (
+                    ffmpeg.input(input_path)
+                    .output(temp_path, **{"filter:a": atempo_filter})
+                    .run(overwrite_output=True)
+                )
+
+                # Replace original with temp file
+                os.replace(temp_path, input_path)
+
+            except Exception as e:
+                # Clean up temp file if something went wrong
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+                raise e
+
+        else:
+            # Ensure output directory exists
+            output_dir = os.path.dirname(output_path)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+
+            # Process directly to output path
+            (
+                ffmpeg.input(input_path)
+                .output(output_path, **{"filter:a": atempo_filter})
+                .run(overwrite_output=True)
+            )
+
     def generate_audio_clip(
         self,
         text: str,
         output_path: str,
-        language: str,
-        speaker: str = "Abrahan Mack",
-        speaker_wav: str = None,
+        speaker: Speaker,
         speed: float = 1.0,
-        separator: str = None,
     ) -> None:
         """
         Generate an audio clip from text
@@ -86,13 +135,8 @@ class TextToSpeech:
         Args:
             text: Text to convert to speech
             output_path: Path to save the audio clip
-            language: Language of the text.
             speaker: Speaker to use for the audio clip. Default is "Abrahan Mack".
-            speaker_wav: Path to the speaker reference audio file.
-                Default is None and the speaker is used.
             speed: Speed of the audio clip. Default is 1.0
-            separator: Separator to split the text into sentences. Default is None.
-                If no specified the text will be splitted using the semantic chunker
 
         """
 
@@ -114,96 +158,24 @@ class TextToSpeech:
             os.makedirs(folder_path, exist_ok=True)
             logger.info(f"Folder not found. Created folder: {folder_path}")
 
+        start = time.time()
         try:
-            if text and len(text) <= 200:
-                sanitized_text = self.sanitize_text(text)
-                start = time.time()
-                self.model.tts_to_file(
-                    text=sanitized_text,
-                    language=language,
-                    file_path=output_path,
-                    speaker=speaker if not speaker_wav else None,
-                    speaker_wav=speaker_wav,
-                    speed=speed,
-                    split_sentences=False,
-                )
-                end = time.time()
+            sanitized_text = self.sanitize_text(text)
 
-                logger.info(
-                    f"Audio clip generated: {output_path} in {end - start:.2f} seconds",
-                )
+            if len(sanitized_text) == 0:
+                logger.info("Text is empty after sanitization. Skipping generation.")
 
-            elif text and len(text) > 200:
-                processed_files = []
+            communicate = edge_tts.Communicate(sanitized_text, speaker.name)
+            communicate.save_sync(output_path)
 
-                try:
-                    if separator:
-                        raw_chunks = text.split(separator)
-                        splits = []
+            if speed != 1.0:
+                self.speedup_audio(output_path, speed)
 
-                        for chunk in raw_chunks:
-                            chunk = chunk.strip()
-                            if len(chunk) > 200:
-                                # Use semantic chunker to split long chunk
-                                subsplits = [
-                                    subchunk.text.strip()
-                                    for subchunk in self.chunker.chunk(chunk)
-                                ]
-                                splits.extend(subsplits)
-                            else:
-                                splits.append(chunk)
-                    else:
-                        # Fallback to semantic chunking
-                        splits = [
-                            chunk.text.strip() for chunk in self.chunker.chunk(text)
-                        ]
+            end = time.time()
 
-                    # Clean empty text from splits
-                    splits = [chunk.strip() for chunk in splits if chunk.strip() != ""]
-
-                    # Get the file extension to mantain in the splits output path
-                    _, extension = os.path.splitext(output_path)
-                    temp_folder = ".temp"
-                    if not os.path.exists(folder_path):
-                        os.makedirs(folder_path, exist_ok=True)
-                        logger.info(f"Folder not found. Created folder: {folder_path}")
-
-                    for idx, text in enumerate(splits):
-
-                        sanitized_text = self.sanitize_text(text)
-                        start = time.time()
-                        self.model.tts_to_file(
-                            text=sanitized_text,
-                            language=language,
-                            file_path=os.path.join(
-                                temp_folder,
-                                f"_temp_split_{idx}{extension}",
-                            ),
-                            speaker=speaker if not speaker_wav else None,
-                            speaker_wav=speaker_wav,
-                            speed=speed,
-                            split_sentences=False,
-                        )
-                        end = time.time()
-                        processed_files.append(
-                            os.path.join(temp_folder, f"_temp_split_{idx}{extension}"),
-                        )
-
-                    concatenate_audio_files(
-                        files=processed_files,
-                        output_file=output_path,
-                    )
-
-                except Exception as e:
-                    raise e
-
-                finally:
-                    for file in processed_files:
-                        os.remove(file)
-
-            else:
-                logger.warning("Text is empty. Generating silence.")
-                generate_silence(duration=1, output_path=output_path)
+            logger.info(
+                f"Audio clip generated: {output_path} in {end - start:.2f} s with speed {speed}.",
+            )
 
         except Exception as e:
             logger.error(f"Error generating audio clip with the following text: {text}")
