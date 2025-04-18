@@ -3,12 +3,12 @@ import json
 import os
 import random
 from pathlib import Path
-from typing import ClassVar, List, Literal, Optional, Tuple
+from typing import ClassVar, Dict, List, Literal, Optional, Tuple
 
 import langid
 import yt_dlp
 from loguru import logger
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, model_validator
 from pysubs2 import Color
 
 from src.utils.path import create_file_folder
@@ -204,18 +204,15 @@ class RedditPost(BaseModel):
 
 
 class Speaker(BaseModel):
-    accepted_speakers: ClassVar[dict[str, str]] = {
-        "Gitta Nikolina": "female",
-        "Narelle Moon": "female",
-        "Abrahan Mack": "male",
-        "Damien Black": "male",
-    }
+    accepted_speakers: Optional[List[Dict[str, str]]] = json.load(
+        open("data/voices.json"),
+    )
+    name: Optional[str] = None
+    language: Literal["pt", "es", "en"]
 
-    name: Optional[str]
-
-    @field_validator("name")
+    @model_validator(mode="after")
     @classmethod
-    def validate_name(cls, value: str) -> str:
+    def validate_name(cls, model: "Speaker") -> "Speaker":
         """
         Validate that the speaker name is in the list of accepted speakers.
         If no speaker name is provided, a random speaker will be chosen.
@@ -225,25 +222,43 @@ class Speaker(BaseModel):
             value (str): The speaker name.
         """
 
-        if not value:
-            value = random.choice(list(cls.accepted_speakers.keys()))
+        language_speakers = [
+            speaker["Name"]
+            for speaker in model.accepted_speakers
+            if speaker["Name"].startswith(model.language)
+        ]
 
-        if value not in cls.accepted_speakers:
+        if not model.name:
+            model.name = random.choice(language_speakers)
+
+        if model.name not in language_speakers:
             raise ValueError(
                 f"""
-                Invalid speaker name, please use one of the following:
-                {', '.join(cls.accepted_speakers.keys())}
+                Invalid speaker name: {model.name} for language {model.language}.
+                Please use one of the following speakers:
+                {', '.join([speaker for speaker in language_speakers])}.
+
+                Also, you can avoid passing the speaker name and a random speaker will be
+                chosen from the list of accepted speakers for the language you are using.
                 """,
             )
-        return value
-
-    @property
-    def id(self) -> str:
-        return self.name.replace(" ", "_").lower()
+        return model
 
     @property
     def gender(self) -> str:
-        return self.accepted_speakers[self.name]
+        return next(
+            speaker["Gender"]
+            for speaker in self.accepted_speakers
+            if speaker["Name"] == self.name
+        )
+
+    @property
+    def locale(self) -> str:
+        return next(
+            "-".join(speaker["Name"].split("-")[:2])
+            for speaker in self.accepted_speakers
+            if speaker["Name"] == self.name
+        )
 
 
 class CaptionStyle(BaseModel):
