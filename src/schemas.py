@@ -11,7 +11,7 @@ from loguru import logger
 from pydantic import BaseModel, model_validator
 from pysubs2 import Color
 
-from src.utils.path import create_file_folder
+from src.utils.common import create_file_folder
 
 
 class MediaFile(BaseModel):
