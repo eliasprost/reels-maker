@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from typing import List, Optional
+import re
+from typing import List, Optional, Union
 
 from loguru import logger
 
@@ -28,7 +29,7 @@ class RedditStoriesPipeline(RedditVideoPipeline):
         self,
         name: str = "reddit_stories_video_pipeline",
         description: str = "A pipeline for creating videos from Reddit post stories",
-        speaker: Optional[str] = None,
+        speaker: Optional[Union[str, Speaker]] = None,
         captions: Optional[CaptionStyle] = None,
         audio_speed: float = 1.3,
         background_audio_volume: float = 0.15,
@@ -38,7 +39,6 @@ class RedditStoriesPipeline(RedditVideoPipeline):
         super().__init__(
             name=name,
             description=description,
-            speaker=speaker,
             captions=captions,
             background_video_name=background_video_name,
             background_audio_name=background_audio_name,
@@ -46,7 +46,7 @@ class RedditStoriesPipeline(RedditVideoPipeline):
         )
 
         self.audio_speed = audio_speed
-        self.speaker = Speaker(name=speaker)
+        self.speaker = speaker
 
         # Paths and config
         self.reel_path = "assets/posts/{post_id}/reel_{suffix}.mp4"
@@ -63,13 +63,11 @@ class RedditStoriesPipeline(RedditVideoPipeline):
         Args:
             post (RedditPost): The Reddit post object.
         """
-
         # Audio
         self.tts.generate_audio_clip(
             post.title,
-            language=post.language,
             output_path=post.title_audio_path,
-            speaker=self.speaker.name,
+            speaker=self.speaker,
             speed=self.audio_speed,
         )
 
@@ -137,7 +135,7 @@ class RedditStoriesPipeline(RedditVideoPipeline):
 
         # Add final fade out
         add_fade_out(
-            input_file=self.reel_path.format(
+            input_path=self.reel_path.format(
                 post_id=post.post_id,
                 suffix="subtitled" if captions else "raw",
             ),
@@ -168,6 +166,16 @@ class RedditStoriesPipeline(RedditVideoPipeline):
         post = get_reddit_object(url)
         logger.info(f"Post retrieved: {post.title}")
 
+        # Build Speaker if it was not forced
+        if not isinstance(self.speaker, Speaker):
+            self.speaker = Speaker(name=self.speaker, language=post.language)
+
+        else:
+            if self.speaker.language != post.language:
+                logger.warning(
+                    f"Speaker language ({self.speaker.language}) does not match post language ({post.language}).",  # noqa: E501
+                )
+
         # Take post title screenshot
         await take_post_screenshot(post, elements=["header", "title", "action_row"])
 
@@ -178,11 +186,9 @@ class RedditStoriesPipeline(RedditVideoPipeline):
         # Generate story audio
         self.tts.generate_audio_clip(
             post.body,
-            language=post.language,
             output_path=post.body_audio_path,
-            speaker=self.speaker.name,
+            speaker=self.speaker,
             speed=self.audio_speed,
-            separator=".",
         )
         logger.info(f"Audio generated for the post body: {post.body}")
 
@@ -202,8 +208,10 @@ class RedditStoriesPipeline(RedditVideoPipeline):
 
         logger.info(f"Background video generated at: {background_video}")
 
+        # Clean and save subtitles text
+        cleaned_text = re.sub(r"[()]", ",", post.body)
         with open(f"assets/posts/{post.post_id}/video_text.txt", "w") as f:
-            f.write(post.body)
+            f.write(cleaned_text)
 
         # Combine all videos
         self.generate_reel_video(
@@ -211,7 +219,7 @@ class RedditStoriesPipeline(RedditVideoPipeline):
             background_video=background_video,
             overlay_media=overlay_media,
             captions=self.captions,
-            video_text=post.body if self.captions else None,
+            video_text=cleaned_text if self.captions else None,
         )
 
         self.save_record(post)
