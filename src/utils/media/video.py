@@ -18,8 +18,8 @@ from moviepy.editor import (
 )
 
 from src.config import settings
+from src.utils.common import create_file_folder
 from src.utils.media.audio import get_audio_duration
-from src.utils.path import create_file_folder
 
 
 def get_video_duration(file_path: str) -> float:

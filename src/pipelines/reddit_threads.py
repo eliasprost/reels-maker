@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import asyncio
-from typing import List, Literal, Optional, Tuple
+import re
+from typing import List, Literal, Optional, Tuple, Union
 
 from loguru import logger
 from tqdm import tqdm
@@ -30,11 +31,11 @@ class RedditThreadPipeline(RedditVideoPipeline):
         self,
         name: str = "reddit_comments_video_pipeline",
         description: str = "A pipeline for creating videos from Reddit and their comments",
-        speaker: Optional[str] = None,
+        speaker: Optional[Union[str, Speaker]] = None,
         captions: Optional[CaptionStyle] = None,
         theme: Literal["dark", "light"] = "light",
         audio_speed: float = 1.3,
-        background_audio_volume: float = 0.20,
+        background_audio_volume: float = 0.15,
         background_video_name: Optional[str] = None,
         background_audio_name: Optional[str] = None,
         max_comment_length: int = 150,
@@ -45,7 +46,6 @@ class RedditThreadPipeline(RedditVideoPipeline):
         super().__init__(
             name=name,
             description=description,
-            speaker=speaker,
             captions=captions,
             background_video_name=background_video_name,
             background_audio_name=background_audio_name,
@@ -56,7 +56,7 @@ class RedditThreadPipeline(RedditVideoPipeline):
         self.sort_by_score = sort_by_score
         self.theme = theme
         self.audio_speed = audio_speed
-        self.speaker = Speaker(name=speaker)
+        self.speaker = speaker
         self.max_comment_length = max_comment_length
         self.silence_duration = silence_duration
 
@@ -101,8 +101,7 @@ class RedditThreadPipeline(RedditVideoPipeline):
             # Audio
             self.tts.generate_audio_clip(
                 comment.body,
-                speaker=self.speaker.name,
-                language=post.language,
+                speaker=self.speaker,
                 output_path=comment.audio_path,
                 speed=self.audio_speed,
             )
@@ -190,16 +189,14 @@ class RedditThreadPipeline(RedditVideoPipeline):
         # Audio
         self.tts.generate_audio_clip(
             post.title,
-            language=post.language,
             output_path=post.title_audio_path,
-            speaker=self.speaker.name,
+            speaker=self.speaker,
             speed=self.audio_speed,
         )
 
         self.tts.generate_audio_clip(
             post.body,
-            language=post.language,
-            speaker=self.speaker.name,
+            speaker=self.speaker,
             output_path=post.body_audio_path,
             speed=self.audio_speed,
         )
@@ -340,8 +337,18 @@ class RedditThreadPipeline(RedditVideoPipeline):
 
         logger.info("Starting Reddit Comments Pipeline...")
 
+        # Get post object
         post = get_reddit_object(url)
         logger.info(f"Post retrieved: {post.title}")
+
+        # Build Speaker if it was not forced
+        if not isinstance(self.speaker, Speaker):
+            self.speaker = Speaker(name=self.speaker, language=post.language)
+        else:
+            if self.speaker.language != post.language:
+                logger.warning(
+                    f"Speaker language ({self.speaker.language}) does not match post language ({post.language}).",  # noqa: E501
+                )
 
         comments = self.get_comments(post, self.remove_duplicates, self.sort_by_score)
         logger.info(f"Retrieved {len(comments)} comments from the post.")
@@ -387,8 +394,10 @@ class RedditThreadPipeline(RedditVideoPipeline):
             + [outro_text],
         )
 
+        # Clean and save subtitles text
+        cleaned_text = re.sub(r"[()]", ",", video_text)
         with open(f"assets/posts/{post.post_id}/video_text.txt", "w") as f:
-            f.write(video_text)
+            f.write(cleaned_text)
 
         # Combine all videos
         self.generate_reel_video(
@@ -396,7 +405,7 @@ class RedditThreadPipeline(RedditVideoPipeline):
             background_video=background_video,
             reddit_videos=reddit_videos,
             captions=self.captions,
-            video_text=video_text if self.captions else None,
+            video_text=cleaned_text if self.captions else None,
         )
 
         self.save_record(post)

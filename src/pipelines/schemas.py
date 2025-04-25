@@ -4,7 +4,7 @@ import json
 import random
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from loguru import logger
 
@@ -31,7 +31,7 @@ class RedditVideoPipeline(ABC):
         self,
         name: str,
         description: str = "",
-        speaker: Optional[str] = None,
+        speaker: Optional[Union[str, Speaker]] = None,
         captions: Optional[CaptionStyle] = None,
         background_video_name: Optional[str] = None,
         background_audio_name: Optional[str] = None,
@@ -39,7 +39,7 @@ class RedditVideoPipeline(ABC):
     ) -> None:
         self.name = name
         self.description = description
-        self.speaker = Speaker(name=speaker)
+        self.speaker = speaker
         self.captions = captions
         self.background_video_name = background_video_name
         self.background_audio_name = background_audio_name
@@ -73,19 +73,18 @@ class RedditVideoPipeline(ABC):
 
         self.tts.generate_audio_clip(
             text=outro_text,
-            language=post.language,
-            output_path=f"./assets/others/outros/outro_{post.language}_{speaker.id}.mp3",
-            speaker=speaker.name,
+            output_path=f"./assets/others/outros/outro_{post.language}_{speaker.name}.mp3",
+            speaker=speaker,
             speed=1.3,  # Fix the outro speed to 1.3
         )
 
         outro_output_path = (
-            f"./assets/others/outros/outro_{post.language}_{speaker.id}.mp4"
+            f"./assets/others/outros/outro_{post.language}_{speaker.name}.mp4"
         )
 
         create_image_videoclip(
             image_path="./assets/others/outros/outro.png",
-            audio_path=f"./assets/others/outros/outro_{post.language}_{speaker.id}.mp3",
+            audio_path=f"./assets/others/outros/outro_{post.language}_{speaker.name}.mp3",
             output_path=outro_output_path,
         )
 
