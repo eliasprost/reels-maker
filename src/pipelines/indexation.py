@@ -8,7 +8,7 @@ from rank_bm25 import BM25Okapi
 from sentence_transformers import CrossEncoder, SentenceTransformer
 from sklearn.preprocessing import normalize
 
-from src.config import settings
+from src.utils.common import get_device
 
 # Set the number of threads for PyTorch to 1 to avoid issues in MX Apple chip
 # https://www.reddit.com/r/comfyui/comments/1c0n5de/there_appear_to_be_1_leaked_semaphore_objects_to/
@@ -28,12 +28,20 @@ class Embeddings:
             model_name: Pre-trained model name or path.
             See: https://huggingface.co/sentence-transformers
         """
-        self.device = (
-            "mps"
-            if torch.backends.mps.is_available() and not settings.FORCE_HF_CPU
-            else "cpu"
-        )
-        self.model = SentenceTransformer(model_name, device=self.device)
+
+        self.model_name = model_name
+        self._model = None  # Defer loading until first use
+        self._device = None  # Defer loading until first use
+
+        @property
+        def device(self):
+            return get_device()
+
+        @property
+        def model(self):
+            if self._model is None:
+                self._model = SentenceTransformer(model_name, device=self.device)
+            return self._model
 
     def encode(self, text: Union[str, List[str]]) -> np.ndarray:
         """
@@ -56,12 +64,23 @@ class ReRanker:
             model_name: Cross-encoder model for re-ranking
             See: https://huggingface.co/cross-encoder
         """
-        self.device = (
-            "mps"
-            if torch.backends.mps.is_available() and not settings.FORCE_HF_CPU
-            else "cpu"
-        )
-        self.model = CrossEncoder(model_name, device=self.device)
+        self.model_name = model_name
+        self._model = None  # Defer loading until first use
+        self._device = None  # Defer loading until first use
+
+        @property
+        def device(self):
+            return get_device()
+
+        @property
+        def model(self):
+            if self._model is None:
+                self._model = CrossEncoder(
+                    model_name,
+                    device=self.device,
+                    compute_type="float16",
+                )
+            return self._model
 
     def rerank(
         self,
