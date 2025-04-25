@@ -73,18 +73,18 @@ class RedditVideoPipeline(ABC):
 
         self.tts.generate_audio_clip(
             text=outro_text,
-            output_path=f"./assets/others/outros/outro_{post.language}_{speaker.id}.mp3",
+            output_path=f"./assets/others/outros/outro_{post.language}_{speaker.name}.mp3",
             speaker=speaker,
             speed=1.3,  # Fix the outro speed to 1.3
         )
 
         outro_output_path = (
-            f"./assets/others/outros/outro_{post.language}_{speaker.id}.mp4"
+            f"./assets/others/outros/outro_{post.language}_{speaker.name}.mp4"
         )
 
         create_image_videoclip(
             image_path="./assets/others/outros/outro.png",
-            audio_path=f"./assets/others/outros/outro_{post.language}_{speaker.id}.mp3",
+            audio_path=f"./assets/others/outros/outro_{post.language}_{speaker.name}.mp3",
             output_path=outro_output_path,
         )
 
