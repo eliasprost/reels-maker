@@ -21,11 +21,16 @@ class SpeechToText:
         See all available models at:
         - https://github.com/openai/whisper/blob/main/model-card.md#model-details
         """
+        self.model_name = model_name
+        self._model = None  # Defer loading until first use
+        self._device = None  # Defer loading until first use
 
-        ssl._create_default_https_context = ssl._create_unverified_context
-        print("HTTPS context has been updated to unverified.")
-
-        self.model = stable_whisper.load_model(model_name)
+    @property
+    def model(self):
+        if self._model is None:
+            ssl._create_default_https_context = ssl._create_unverified_context
+            self._model = stable_whisper.load_model(self.model_name)
+        return self._model
 
     def generate_captions(
         self,
