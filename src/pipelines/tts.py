@@ -11,12 +11,13 @@ import streamlit as st
 from loguru import logger
 
 from src.schemas import Speaker
-from src.utils.path import create_file_folder
+from src.utils.common import create_file_folder
 
 
 class TextToSpeech:
     """
-    Text-to-Speech class using Coqui TTS.
+    Text-to-Speech class using Edge TTS.
+    - https://github.com/rany2/edge-tts
     """
 
     def __init__(
@@ -156,7 +157,6 @@ class TextToSpeech:
         folder_path = os.path.dirname(output_path)
         if not os.path.exists(folder_path):
             os.makedirs(folder_path, exist_ok=True)
-            logger.info(f"Folder not found. Created folder: {folder_path}")
 
         start = time.time()
         try:
